@@ -1,6 +1,6 @@
 use crate::packets::traits::{PacketDecoder, U8Iter};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UInt24Le(pub u32);
 
 impl PacketDecoder for UInt24Le {

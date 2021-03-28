@@ -1,5 +1,7 @@
 #![feature(arbitrary_enum_discriminant)]
 #![allow(clippy::module_inception)]
+#![feature(const_mut_refs)]
+#![feature(const_generics)]
 
 use server::{network::server::NetworkManager, server::Server};
 use std::error::Error;

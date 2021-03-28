@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-#[derive(Debug, packet_derive::Biscuit, Clone, PartialEq)]
+#[derive(Debug, packet_derive::Biscuit, Clone, PartialEq, Copy)]
 pub struct Address {
     pub ip_type: u8,
     pub ip_bytes: [u8; 4],

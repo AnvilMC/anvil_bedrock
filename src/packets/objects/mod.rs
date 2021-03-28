@@ -6,3 +6,4 @@ pub mod server_guid;
 pub mod time;
 pub mod address;
 pub mod uint24le;
+pub mod guid;

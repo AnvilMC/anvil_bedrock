@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto};
+use std::{alloc::Layout, collections::HashMap, convert::TryInto, mem::size_of};
 
 use std::hash::Hash;
 
@@ -19,7 +19,7 @@ macro_rules! primitive {
         }
     };
 }
-macro_rules! array_impl {
+/* macro_rules! array_impl {
     ($alen:expr) => {
         impl PacketDecoder for [u8; $alen] {
             fn read(iter: &mut U8Iter) -> Option<Self> {
@@ -36,7 +36,7 @@ macro_rules! array_impl {
 array_impl!(2);
 array_impl!(4);
 array_impl!(8);
-array_impl!(16);
+array_impl!(16); */
 
 primitive!(i32, 4);
 primitive!(u32, 4);
@@ -83,6 +83,21 @@ impl PacketDecoder for String {
         let length = self.len() as u16;
         length.write(vec);
         vec.append(&mut bytes);
+        Some(())
+    }
+}
+
+#[allow(deprecated)]
+impl <T: PacketDecoder + Copy, const SIZE: usize> PacketDecoder for [T; SIZE] {
+    fn read(iter: &mut U8Iter) -> Option<Self> {
+        // This is safe since we are always writting array in every position or returning None
+        Some((0..SIZE).map(|_| iter.read()).collect::<Option<Vec<_>>>()?.try_into().ok()?)
+    }
+
+    fn write(self, vec: &mut Vec<u8>) -> Option<()> {
+        for i in self.iter() {
+            (*i).write(vec)?;
+        }
         Some(())
     }
 }

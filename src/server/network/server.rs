@@ -1,14 +1,21 @@
+use either::Either;
 use tokio::net::UdpSocket;
 
 use crate::server::server::Server;
 
 use crate::packets::client::PacketClient;
 
-use crate::packets::server::{open_connection_reply_one::OpenConnectionReplyOne,open_connection_reply_two::OpenConnectionReplyTwo};
+use crate::packets::server::{open_connection_reply_one::OpenConnectionReplyOne,open_connection_reply_two::OpenConnectionReplyTwo, connection_request_accepted::ConnectionRequestAccepted};
 
 use crate::packets::encode;
 
 use crate::packets::server::pong_packet::PongPacket;
+use crate::packets::client::frame_packet::{FrameManager, FramePacket, Frames, UNRELIABLE};
+use crate::packets::client::PacketGameClient;
+use crate::packets::objects::uint24le::UInt24Le;
+use crate::packets::common::ack::{Ack, Record};
+
+use tokio::runtime::Runtime;
 
 pub struct NetworkManager {
     pub server_info: Server,
@@ -23,6 +30,8 @@ impl NetworkManager {
         } = self;
         let mut buf = vec![0; 1024 * 1024];
 
+        let mut frame_manager = FrameManager::default();
+
         loop {
             let (size, peer) = socket.recv_from(&mut buf).await?;
 
@@ -31,7 +40,13 @@ impl NetworkManager {
             }
             let mut iter = buf.clone().into_iter().take(size);
 
-            match PacketClient::parse_packet(&mut iter).unwrap() {
+            let pocket = PacketClient::parse_packet(&mut iter);
+
+            if pocket.is_none() {
+                continue;
+            }
+
+            match pocket.unwrap() {
                 PacketClient::PingPacket(packet) => {
                     //println!("{:?}",packet);
                     socket
@@ -58,7 +73,86 @@ impl NetworkManager {
                         .expect("Can't send");
                 }
                 PacketClient::FramePacket(packet) => {
-                    println!("{:?}",packet);
+
+                    let ack = Ack {
+                        record_count: 1,
+                        record: Record (Either::Left(packet.frames.reliable_index.as_ref().unwrap().clone()))
+                    };
+
+                    /* socket
+                        .send_to(
+                            &encode(ack),
+                            peer,
+                        )
+                        .await
+                        .expect("Can't send"); */
+
+                    //println!("{:?}", packet);
+                    if let Some(e) = frame_manager.append(packet) {
+                        
+                        let mut iter = e.into_iter().take(size);
+
+                        match PacketGameClient::parse_packet(&mut iter).unwrap() {
+                            PacketGameClient::ConnectionRequest(packet) => {
+                                println!("{:?}",packet);
+
+                                let send_packet = ConnectionRequestAccepted::from(packet, (&peer).into());
+
+                                let payload = encode(send_packet);
+
+                                let enco = &encode(FramePacket {
+                                    sequence_number: UInt24Le(1),
+                                    frames: Frames {
+                                        reliable: UNRELIABLE,
+                                        length: payload.len() as u16,
+                                        reliable_index: None,
+                                        sequenced_index: None,
+                                        order: None,
+                                        split: None,
+                                        payload,
+                                        
+                                    },
+                                    
+                                });
+
+                                println!("{:?}", enco);
+
+                                 /* socket
+                                .send_to(
+                                    &encode(FramePacket {
+                                        sequence_number: UInt24Le(1),
+                                        frames: Frames {
+                                            reliable: UNRELIABLE,
+                                            length: payload.len() as u16,
+                                            reliable_index: None,
+                                            sequenced_index: None,
+                                            order: None,
+                                            split: None,
+                                            payload,
+                                            
+                                        },
+                                        
+                                    }),
+                                    peer,
+                                )
+                                .await
+                                .expect("Can't send");  */
+
+                                
+                            }
+                        }
+                
+                    }
+                }
+                PacketClient::Ack(ack) => {
+                    println!("{:?}", ack);
+                    /* socket
+                        .send_to(
+                            &encode(ack),
+                            peer,
+                        )
+                        .await
+                        .expect("Can't send"); */
                 }
             }
             //println!("Peer : {:?}", peer);
