@@ -1,4 +1,4 @@
-use std::{collections::HashMap, future::Future, process::Output};
+use std::collections::HashMap;
 
 use packet_derive::packet;
 
@@ -16,7 +16,7 @@ pub struct FramePacket {
     pub payload: Vec<u8>
 } */
 
-#[packet(0x80)]
+#[packet(0x84)]
 #[derive(Debug)]
 pub struct FramePacket {
     pub sequence_number: UInt24Le,
@@ -83,6 +83,7 @@ pub struct Reliability {
     pub ordered: bool,
     pub sequenced: bool,
     pub requires_ack: bool,
+    pub need_bas: bool,
 }
 
 impl Reliability {
@@ -92,8 +93,14 @@ impl Reliability {
             reliable,
             ordered,
             sequenced,
-            requires_ack
+            requires_ack,
+            need_bas: false
         }
+    }
+
+    pub fn set_bas(mut self, bas:bool) -> Self {
+        self.need_bas = bas;
+        self
     }
 
     fn lookup(id: u8) -> Option<Self> {
@@ -115,6 +122,10 @@ impl Reliability {
             FLAG_SPLIT
         }else {
             0
+        } | if self.need_bas {
+            FLAG_BAS
+        } else {
+            0
         }
     }
 }
@@ -131,6 +142,7 @@ pub const RELIABLE_ORDERED_WITH_ACK_RECEIPT: Reliability = Reliability::new(7, t
 const FLAG_RELIABILITY_INDEX: u8 = 5;
 const FLAG_RELIABILITY: u8 = 0b11100000;
 const FLAG_SPLIT: u8  = 0b00010000;
+const FLAG_BAS: u8  = 0b00001000;
 
 impl PacketDecoder for FramePacket {
     fn read(iter: &mut crate::packets::traits::U8Iter) -> Option<Self> {
@@ -203,7 +215,7 @@ impl PacketDecoder for FramePacket {
 
         vec.push(self.frames.reliable.compute_flag(self.frames.split.is_some()));
 
-        ((self.frames.payload.len() * 256) as u16).write(vec);
+        ((self.frames.payload.len() << 3) as u16).write(vec);
         
         if let Some(e) = self.frames.reliable_index {
             e.write(vec);

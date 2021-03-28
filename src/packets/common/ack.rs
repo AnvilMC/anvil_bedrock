@@ -5,13 +5,29 @@ use crate::packets::{objects::{guid::GUID, uint24le::UInt24Le}, traits::PacketDe
 use crate::packets::traits::IterRead;
 
 #[packet(0xc0)]
-#[derive(Debug, packet_derive::Biscuit)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Ack {
-    pub record_count: i16,
-    pub record: Record,
+    pub record: Vec<Record>,
 }
 
-#[derive(Debug)]
+impl PacketDecoder for Ack {
+    fn read(iter: &mut crate::packets::traits::U8Iter) -> Option<Self> {
+        let count: i16 = iter.read()?;
+        Some(Self {
+            record: (0..count).map(|_| iter.read()).collect::<Option<_>>()?
+        })
+    }
+
+    fn write(self, vec: &mut Vec<u8>) -> Option<()> {
+        (self.record.len() as i16).write(vec);
+        for i in self.record.into_iter() {
+            i.write(vec)?;
+        }
+        Some(())
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct Record (pub Either<UInt24Le, (UInt24Le, UInt24Le)>);
 
 impl PacketDecoder for Record {

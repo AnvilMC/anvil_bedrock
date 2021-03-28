@@ -1,4 +1,4 @@
-use self::{connection_request::ConnectionRequest, frame_packet::FramePacket, open_connection_request_one::OpenConnectionRequestOne, open_connection_request_two::OpenConnectionRequestTwo, ping_packet::PingPacket};
+use self::{connected_ping::ConnectedPing, connection_request::ConnectionRequest, frame_packet::FramePacket, new_incoming_connection::NewIncomingConnection, open_connection_request_one::OpenConnectionRequestOne, open_connection_request_two::OpenConnectionRequestTwo, ping_packet::PingPacket};
 
 use super::{common::ack::Ack, traits::{IterRead, U8Iter}};
 
@@ -7,6 +7,8 @@ pub mod open_connection_request_two;
 pub mod connection_request;
 pub mod ping_packet;
 pub mod frame_packet;
+pub mod new_incoming_connection;
+pub mod connected_ping;
 
 #[derive(Debug)]
 pub enum PacketClient {
@@ -20,12 +22,16 @@ pub enum PacketClient {
 #[derive(Debug)]
 pub enum PacketGameClient {
     ConnectionRequest(ConnectionRequest),
+    NewIncomingConnection(NewIncomingConnection),
+    ConnectedPing(ConnectedPing)
 }
 
 impl PacketGameClient {
     pub fn parse_packet(iter: &mut U8Iter) -> Option<Self> {
         Some(match iter.next()? {
             0x09 => Self::ConnectionRequest(iter.read()?),
+            0x13 => Self::NewIncomingConnection(iter.read()?),
+            0x00 => Self::ConnectedPing(iter.read()?),
             e => {
                 panic!("Packet not yet implemented {}", e);
             }
