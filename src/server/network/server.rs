@@ -26,12 +26,14 @@ impl NetworkManager {
         loop {
             let (size, peer) = socket.recv_from(&mut buf).await?;
 
-            //println!("buffer : {:?}", &buf[..size]);
+            if let 0x80..=0x8D = buf[0] {
+                println!("buffer : {:?}", &buf[..size]);
+            }
             let mut iter = buf.clone().into_iter().take(size);
 
             match PacketClient::parse_packet(&mut iter).unwrap() {
                 PacketClient::PingPacket(packet) => {
-                    println!("{:?}",packet);
+                    //println!("{:?}",packet);
                     socket
                         .send_to(&encode(PongPacket::from(packet, &server_info)), peer)
                         .await
@@ -54,6 +56,9 @@ impl NetworkManager {
                         )
                         .await
                         .expect("Can't send");
+                }
+                PacketClient::FramePacket(packet) => {
+                    println!("{:?}",packet);
                 }
             }
             //println!("Peer : {:?}", peer);

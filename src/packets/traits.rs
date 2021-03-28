@@ -38,6 +38,8 @@ array_impl!(4);
 array_impl!(8);
 array_impl!(16);
 
+primitive!(i32, 4);
+primitive!(u32, 4);
 primitive!(i64, 8);
 primitive!(u64, 8);
 primitive!(u128, 16);
