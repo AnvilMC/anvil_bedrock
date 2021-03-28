@@ -1,6 +1,15 @@
 use packet_derive::{packet, Biscuit};
 
-use crate::{packets::{client::{connection_request::ConnectionRequest, open_connection_request_one::OpenConnectionRequestOne}, objects::{address::Address, magic::Magic, server_guid::ServerGUID}}, server::server::Server};
+use crate::{
+    packets::{
+        client::{
+            connection_request::ConnectionRequest,
+            open_connection_request_one::OpenConnectionRequestOne,
+        },
+        objects::{address::Address, magic::Magic, server_guid::ServerGUID},
+    },
+    server::server::Server,
+};
 
 #[packet(0x10)]
 #[derive(Debug, Biscuit)]
@@ -12,18 +21,30 @@ pub struct ConnectionRequestAccepted {
     pub time: i64,
 }
 
+use either::Either;
+
 macro_rules! bd {
     () => {
         Address {
-            ip_type: 4,
-            ip_bytes: [255;4],
+            ip_bytes: Either::Left([255; 4]),
             port: 19132,
         };
     };
 }
 
 const fn build() -> [Address; 10] {
-    [bd!(),bd!(),bd!(),bd!(),bd!(),bd!(),bd!(),bd!(),bd!(),bd!()]
+    [
+        bd!(),
+        bd!(),
+        bd!(),
+        bd!(),
+        bd!(),
+        bd!(),
+        bd!(),
+        bd!(),
+        bd!(),
+        bd!(),
+    ]
 }
 
 impl ConnectionRequestAccepted {
@@ -34,7 +55,6 @@ impl ConnectionRequestAccepted {
             internal_ids: build(),
             request_time: e.time,
             time: e.time,
-            
         }
     }
 }

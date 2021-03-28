@@ -1,20 +1,29 @@
+use std::{future::Future, net::SocketAddr};
+
 use either::Either;
 use tokio::net::UdpSocket;
 
-use crate::{packets::traits::PacketDecoder, server::server::Server};
+use crate::{
+    packets::traits::{Packet, PacketDecoder},
+    server::server::Server,
+};
 
 use crate::packets::client::PacketClient;
 
-use crate::packets::server::{open_connection_reply_one::OpenConnectionReplyOne,open_connection_reply_two::OpenConnectionReplyTwo, connection_request_accepted::ConnectionRequestAccepted};
+use crate::packets::server::{
+    connection_request_accepted::ConnectionRequestAccepted,
+    open_connection_reply_one::OpenConnectionReplyOne,
+    open_connection_reply_two::OpenConnectionReplyTwo,
+};
 
 use crate::packets::encode;
 
-use crate::packets::server::pong_packet::PongPacket;
 use crate::packets::client::frame_packet::{FrameManager, FramePacket, Frames, UNRELIABLE};
 use crate::packets::client::PacketGameClient;
-use crate::packets::server::connected_pong::ConnectedPong;
-use crate::packets::objects::uint24le::UInt24Le;
 use crate::packets::common::ack::{Ack, Record};
+use crate::packets::objects::uint24le::UInt24Le;
+use crate::packets::server::connected_pong::ConnectedPong;
+use crate::packets::server::pong_packet::PongPacket;
 
 use tokio::runtime::Runtime;
 
@@ -36,125 +45,116 @@ impl NetworkManager {
         loop {
             let (size, peer) = socket.recv_from(&mut buf).await?;
 
-            if let 0x80..=0x8D = buf[0] {
-                println!("buffer : {:?}", &buf[..size]);
-            }
+            //println!("{:?}",&buf[..size]);
             let mut iter = buf.clone().into_iter().take(size);
 
-            let pocket = PacketClient::parse_packet(&mut iter);
 
-            if pocket.is_none() {
-                continue;
-            }
+            if let Some(packet) = PacketClient::parse_packet(&mut iter) {
+                match packet {
+                    PacketClient::PingPacket(packet) => {
+                        socket
+                            .send_packet(&peer, PongPacket::from(packet, &server_info))
+                            .await
+                            .expect("Can't send");
+                    }
+                    PacketClient::OpenConnectionRequestOne(packet) => {
+                        socket
+                            .send_packet(&peer, OpenConnectionReplyOne::from(packet, &server_info))
+                            .await
+                            .expect("Can't send");
+                    }
+                    PacketClient::OpenConnectionRequestTwo(packet) => {
+                        socket
+                            .send_packet(
+                                &peer,
+                                OpenConnectionReplyTwo::from(packet, (&peer).into(), &server_info),
+                            )
+                            .await
+                            .expect("Can't send");
+                    }
+                    PacketClient::FramePacket(packet) => {
+                        let p0 = frame_manager.get_range();
+                        let (p1,p2) = frame_manager.append(packet);
+                        //println!("IIII {:?}",p1);
+                        if p0 != p1 {
+                            socket
+                            .send_packet(
+                                &peer,
+                                Ack {
+                                    record: vec![Record(Either::Right((UInt24Le(0),UInt24Le(p1 as u32 + 3))))]
+                                }
+                            ).await;
+                        }
+                        if let Some(e) = p2 {
+                            //println!("REASSEMBLED {:?}", e);
+                            let mut iter = e.into_iter();
 
-            match pocket.unwrap() {
-                PacketClient::PingPacket(packet) => {
-                    //println!("{:?}",packet);
-                    socket
-                        .send_to(&encode(PongPacket::from(packet, &server_info)), peer)
-                        .await
-                        .expect("Can't send");
-                }
-                PacketClient::OpenConnectionRequestOne(packet) => {
-                    socket
-                        .send_to(
-                            &encode(OpenConnectionReplyOne::from(packet, &server_info)),
-                            peer,
-                        )
-                        .await
-                        .expect("Can't send");
-                }
-                PacketClient::OpenConnectionRequestTwo(packet) => {
-                    socket
-                        .send_to(
-                            &encode(OpenConnectionReplyTwo::from(packet, (&peer).into(),&server_info)),
-                            peer,
-                        )
-                        .await
-                        .expect("Can't send");
-                }
-                PacketClient::FramePacket(packet) => {
+                            match PacketGameClient::parse_packet(&mut iter).unwrap() {
+                                PacketGameClient::ConnectionRequest(packet) => {
+                                    //println!("{:?}", packet);
 
-                    if let Some(e) = frame_manager.append(packet) {
-                        
-                        let mut iter = e.into_iter().take(size);
+                                    socket
+                                        .send_framed(
+                                            &mut frame_manager,
+                                            &peer,
+                                            ConnectionRequestAccepted::from(packet, (&peer).into()),
+                                        )
+                                        .await
+                                        .expect("Can't send FramePacket ConnectionRequest");
 
-                        match PacketGameClient::parse_packet(&mut iter).unwrap() {
-                            PacketGameClient::ConnectionRequest(packet) => {
-                                println!("{:?}",packet);
-
-                                let send_packet = ConnectionRequestAccepted::from(packet, (&peer).into());
-
-                                let payload = encode(send_packet);
-
-                                let enco = &encode(FramePacket {
-                                    sequence_number: UInt24Le(0),
-                                    frames: Frames {
-                                        reliable: UNRELIABLE.set_bas(true),
-                                        length: payload.len() as u16,
-                                        reliable_index: None,
-                                        sequenced_index: None,
-                                        order: None,
-                                        split: None,
-                                        payload,
-                                        
-                                    },
-                                    
-                                });
-
-                                println!("{:?}", enco);
-
-                                 socket
-                                .send_to(
-                                    enco
-                                        
-                                    ,
-                                    peer,
-                                )
-                                .await
-                                .expect("Can't send"); 
-
-                                let ack = Ack {
-                                    record: vec![Record(Either::Left(UInt24Le(0)))]
-                                };
-            
-                                socket
-                                    .send_to(
-                                        &encode(ack),
-                                        peer,
-                                    )
-                                    .await
-                                    .expect("Can't send");
-            
-                                //println!("{:?}", packet);
-
-                                
-                            }
-                            PacketGameClient::NewIncomingConnection(e) => {
-                                println!("{:?}",e);
-                            }
-                            PacketGameClient::ConnectedPing(packet_ping) => {
-                                socket
-                                    .send_to(
-                                        &encode(ConnectedPong::from(packet_ping)),
-                                        peer,
-                                    )
-                                    .await
-                                    .expect("Can't send");
+                                    // socket
+                                    //     .send_packet(
+                                    //         //&mut frame_manager,
+                                    //         &peer,
+                                    //         Ack {
+                                    //             record: vec![Record(Either::Left(UInt24Le(0)))],
+                                    //         },
+                                    //     )
+                                    //     .await
+                                    //     .expect("Can't send ACK");
+                                }
+                                PacketGameClient::NewIncomingConnection(e) => {
+                                    //println!("{:?}", e);
+                                },
+                                PacketGameClient::ConnectedPing(packet_ping) => {
+                                    socket
+                                            .send_framed(
+                                                &mut frame_manager,
+                                                &peer,
+                                                ConnectedPong::from(packet_ping),
+                                            )
+                                            .await
+                                            .expect("Can't send");
+                                   /*  socket
+                                            .send_packet(
+                                                //&mut frame_manager,
+                                                &peer,
+                                                Ack {
+                                                    record: vec![Record(Either::Left(UInt24Le(0)))],
+                                                },
+                                            )
+                                            .await
+                                            .expect("Can't send ACK"); */
+                                }
+                                PacketGameClient::GamePacket(game_packet) => {
+                                    println!("{:?}", game_packet);
+                                }
                             }
                         }
-                
                     }
-                }
-                PacketClient::Ack(ack) => {
-                    println!("{:?}", ack);
-                    /* socket
-                        .send_to(
-                            &encode(ack),
-                            peer,
-                        )
-                        .await
-                        .expect("Can't send"); */
+                    PacketClient::Ack(ack) => {
+                        //println!("{:?}", ack);
+                    },
+                    PacketClient::ConnectedPing(packet_ping) => {
+                        socket
+                                .send_framed(
+                                    &mut frame_manager,
+                                    &peer,
+                                    ConnectedPong::from(packet_ping),
+                                )
+                                .await
+                                .expect("Can't send");
+                    }
                 }
             }
             //println!("Peer : {:?}", peer);
@@ -162,13 +162,40 @@ impl NetworkManager {
     }
 }
 
-/* #[test]
-fn ack_valid() {
-    // let ack = Ack {
-    //     record_count: 1,
-    //     record: Record(Either::Left(UInt24Le(51))),
-    // };
-    let i = encode(ack.clone());
-    println!("{:?}",i);
-    assert_eq!(Ack::read(&mut i.into_iter().skip(1)), Some(ack));
-} */
+#[async_trait::async_trait]
+trait PacketSender {
+    async fn send_packet(
+        &self,
+        peer: &SocketAddr,
+        packet: impl Packet + PacketDecoder + Send + 'async_trait,
+    ) -> std::io::Result<usize>;
+
+    async fn send_framed(
+        &self,
+        frame_manager: &mut FrameManager,
+        peer: &SocketAddr,
+        packet: impl Packet + PacketDecoder + Send + 'async_trait,
+    ) -> std::io::Result<usize>;
+}
+
+#[async_trait::async_trait]
+impl PacketSender for UdpSocket {
+    async fn send_packet(
+        &self,
+        peer: &SocketAddr,
+        packet: impl Packet + PacketDecoder + Send + 'async_trait,
+    ) -> std::io::Result<usize> {
+        let pa = encode(packet);
+        self.send_to(&pa, peer).await
+    }
+
+    async fn send_framed(
+        &self,
+        frame_manager: &mut FrameManager,
+        peer: &SocketAddr,
+        packet: impl Packet + PacketDecoder + Send + 'async_trait,
+    ) -> std::io::Result<usize> {
+        self.send_to(&encode(frame_manager.from_packet(packet)), peer)
+            .await
+    }
+}

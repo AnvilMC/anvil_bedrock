@@ -1,2 +1,2 @@
 #[derive(Debug, packet_derive::Biscuit, Clone, PartialEq)]
-pub struct Time(pub i64);
+pub struct Time(pub u64);

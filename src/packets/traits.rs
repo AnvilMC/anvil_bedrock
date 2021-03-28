@@ -88,10 +88,16 @@ impl PacketDecoder for String {
 }
 
 #[allow(deprecated)]
-impl <T: PacketDecoder + Copy, const SIZE: usize> PacketDecoder for [T; SIZE] {
+impl<T: PacketDecoder + Copy, const SIZE: usize> PacketDecoder for [T; SIZE] {
     fn read(iter: &mut U8Iter) -> Option<Self> {
         // This is safe since we are always writting array in every position or returning None
-        Some((0..SIZE).map(|_| iter.read()).collect::<Option<Vec<_>>>()?.try_into().ok()?)
+        Some(
+            (0..SIZE)
+                .map(|_| iter.read())
+                .collect::<Option<Vec<_>>>()?
+                .try_into()
+                .ok()?,
+        )
     }
 
     fn write(self, vec: &mut Vec<u8>) -> Option<()> {

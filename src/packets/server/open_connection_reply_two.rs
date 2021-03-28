@@ -1,6 +1,12 @@
 use packet_derive::{packet, Biscuit};
 
-use crate::{packets::{client::{open_connection_request_two::OpenConnectionRequestTwo}, objects::{address::Address, magic::Magic, server_guid::ServerGUID}}, server::server::Server};
+use crate::{
+    packets::{
+        client::open_connection_request_two::OpenConnectionRequestTwo,
+        objects::{address::Address, magic::Magic, server_guid::ServerGUID},
+    },
+    server::server::Server,
+};
 
 #[packet(0x08)]
 #[derive(Debug, Biscuit)]

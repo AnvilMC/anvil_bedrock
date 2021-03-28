@@ -13,3 +13,5 @@ tokio-stream = { version = "0.1" }
 packet_derive = {path = "./packet_derive"}
 encoding = "0.2.33"
 either = "1.6.1"
+async-trait = "0.1.48"
+miniz_oxide = "0.4.4"

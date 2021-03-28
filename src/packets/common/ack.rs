@@ -1,8 +1,11 @@
 use either::Either;
 use packet_derive::packet;
 
-use crate::packets::{objects::{guid::GUID, uint24le::UInt24Le}, traits::PacketDecoder};
 use crate::packets::traits::IterRead;
+use crate::packets::{
+    objects::{guid::GUID, uint24le::UInt24Le},
+    traits::PacketDecoder,
+};
 
 #[packet(0xc0)]
 #[derive(Debug, PartialEq, Clone)]
@@ -14,7 +17,7 @@ impl PacketDecoder for Ack {
     fn read(iter: &mut crate::packets::traits::U8Iter) -> Option<Self> {
         let count: i16 = iter.read()?;
         Some(Self {
-            record: (0..count).map(|_| iter.read()).collect::<Option<_>>()?
+            record: (0..count).map(|_| iter.read()).collect::<Option<_>>()?,
         })
     }
 
@@ -28,14 +31,14 @@ impl PacketDecoder for Ack {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Record (pub Either<UInt24Le, (UInt24Le, UInt24Le)>);
+pub struct Record(pub Either<UInt24Le, (UInt24Le, UInt24Le)>);
 
 impl PacketDecoder for Record {
     fn read(iter: &mut crate::packets::traits::U8Iter) -> Option<Self> {
         Some(Record(if iter.read()? {
             Either::Left(iter.read()?)
-        }else {
-           Either::Right((iter.read()?, iter.read()?))
+        } else {
+            Either::Right((iter.read()?, iter.read()?))
         }))
     }
 
@@ -45,7 +48,7 @@ impl PacketDecoder for Record {
                 true.write(vec)?;
                 e.write(vec)?;
             }
-            Either::Right((x ,y)) => {
+            Either::Right((x, y)) => {
                 false.write(vec)?;
                 x.write(vec)?;
                 y.write(vec)?;

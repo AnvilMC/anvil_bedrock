@@ -5,7 +5,12 @@ pub struct UInt24Le(pub u32);
 
 impl PacketDecoder for UInt24Le {
     fn read(iter: &mut U8Iter) -> Option<Self> {
-        Some(UInt24Le(u32::from_le_bytes([iter.next()?,iter.next()?,iter.next()?,0])))
+        Some(UInt24Le(u32::from_le_bytes([
+            iter.next()?,
+            iter.next()?,
+            iter.next()?,
+            0,
+        ])))
     }
 
     fn write(self, vec: &mut Vec<u8>) -> Option<()> {
