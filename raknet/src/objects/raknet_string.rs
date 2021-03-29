@@ -1,12 +1,15 @@
 use crate::prelude::{RaknetPacketData, Reader, Writer};
 
-
 #[derive(Clone)]
 pub struct RaknetString(pub Vec<u8>);
 
 impl RaknetPacketData for RaknetString {
     fn decode(reader: &mut impl Reader) -> Option<Self> {
-        Some(RaknetString((0..u16::decode(reader)?).map(|_| reader.next()).collect::<Option<_>>()?))
+        Some(RaknetString(
+            (0..u16::decode(reader)?)
+                .map(|_| reader.next())
+                .collect::<Option<_>>()?,
+        ))
     }
 
     fn encode(&self, writer: &mut impl Writer) -> Option<()> {

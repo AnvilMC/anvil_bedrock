@@ -6,6 +6,7 @@ pub trait RaknetPacketData: Sized {
 }
 
 pub trait Reader {
+    fn skip(&mut self, n: usize);
     fn next(&mut self) -> Option<u8>;
     fn next_array<const N: usize>(&mut self) -> Option<[u8; N]>;
     fn read_to_end(&mut self) -> Vec<u8>;
@@ -16,7 +17,7 @@ pub trait Writer {
     fn write_slice(&mut self, slice: &[u8]) -> Option<()>;
 }
 
-impl <'a, T: Iterator<Item = &'a u8>> Reader for T {
+impl<'a, T: Iterator<Item = &'a u8>> Reader for T {
     fn next(&mut self) -> Option<u8> {
         self.next().copied()
     }
@@ -27,6 +28,10 @@ impl <'a, T: Iterator<Item = &'a u8>> Reader for T {
 
     fn read_to_end(&mut self) -> Vec<u8> {
         self.copied().collect()
+    }
+
+    fn skip(&mut self, n: usize) {
+        self.take(n).for_each(drop);
     }
 }
 

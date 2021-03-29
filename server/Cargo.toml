@@ -8,6 +8,4 @@ edition = "2018"
 
 [dependencies]
 raknet = {path = "../raknet"}
-tokio = { version = "1", features = ["full"] }
-tokio-util = { version = "0.6.3", features = ["full"] }
-tokio-stream = { version = "0.1" }
+tokio = { version = "1", default_features = false, features = ["net","rt-multi-thread"]}

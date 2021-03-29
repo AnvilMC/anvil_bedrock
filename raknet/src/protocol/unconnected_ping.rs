@@ -1,12 +1,14 @@
 use std::ops::Range;
 
-use crate::{objects::RaknetPacket, prelude::{RaknetPacketData, Reader, Writer}};
-
+use crate::{
+    objects::RaknetPacket,
+    prelude::{RaknetPacketData, Reader, Writer},
+};
 
 pub struct UnconnectedPing {
     pub time: i64,
     pub magic: [u8; 16],
-    pub client_guid: i64
+    pub client_guid: i64,
 }
 
 impl RaknetPacketData for UnconnectedPing {

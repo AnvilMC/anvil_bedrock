@@ -1,13 +1,15 @@
 use std::{borrow::Cow, ops::Range};
 
-use crate::{objects::{RaknetPacket, RaknetString}, prelude::{RaknetPacketData, Reader, Writer}};
-
+use crate::{
+    objects::{RaknetPacket, RaknetString},
+    prelude::{RaknetPacketData, Reader, Writer},
+};
 
 pub struct UnconnectedPong<'a> {
     pub time: i64,
     pub server_guid: i64,
     pub magic: [u8; 16],
-    pub server_id_string: Cow<'a, RaknetString>
+    pub server_id_string: Cow<'a, RaknetString>,
 }
 
 impl RaknetPacketData for UnconnectedPong<'_> {

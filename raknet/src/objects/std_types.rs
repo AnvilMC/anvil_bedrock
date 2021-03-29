@@ -25,7 +25,17 @@ impl RaknetPacketData for bool {
     }
 }
 
-impl <const N: usize> RaknetPacketData for [u8; N] {
+impl RaknetPacketData for Vec<u8> {
+    fn decode(reader: &mut impl Reader) -> Option<Self> {
+        Some(reader.read_to_end())
+    }
+
+    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+        writer.write_slice(self)
+    }
+}
+
+impl<const N: usize> RaknetPacketData for [u8; N] {
     fn decode(reader: &mut impl Reader) -> Option<Self> {
         reader.next_array()
     }
@@ -36,10 +46,9 @@ impl <const N: usize> RaknetPacketData for [u8; N] {
 }
 
 pub trait RaknetPacket: RaknetPacketData {
-
     const RANGE: Range<u8>;
     fn id(&self) -> u8;
-} 
+}
 
 primitive!(i8, 1);
 primitive!(u16, 2);
