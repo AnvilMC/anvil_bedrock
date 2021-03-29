@@ -1,4 +1,10 @@
-use self::{connected_ping::ConnectedPing, connection_request::ConnectionRequest, frame_packet::FramePacket, game_packet::GamePacket, new_incoming_connection::NewIncomingConnection, open_connection_request_one::OpenConnectionRequestOne, open_connection_request_two::OpenConnectionRequestTwo, ping_packet::PingPacket};
+use self::{
+    connected_ping::ConnectedPing, connection_request::ConnectionRequest,
+    frame_packet::FramePacket, game_packet::GamePacket,
+    new_incoming_connection::NewIncomingConnection,
+    open_connection_request_one::OpenConnectionRequestOne,
+    open_connection_request_two::OpenConnectionRequestTwo, ping_packet::PingPacket,
+};
 
 use super::{
     common::ack::Ack,
@@ -8,11 +14,11 @@ use super::{
 pub mod connected_ping;
 pub mod connection_request;
 pub mod frame_packet;
+pub mod game_packet;
 pub mod new_incoming_connection;
 pub mod open_connection_request_one;
 pub mod open_connection_request_two;
 pub mod ping_packet;
-pub mod game_packet;
 
 #[derive(Debug)]
 pub enum PacketClient {
@@ -29,7 +35,7 @@ pub enum PacketGameClient {
     ConnectionRequest(ConnectionRequest),
     NewIncomingConnection(NewIncomingConnection),
     ConnectedPing(ConnectedPing),
-    GamePacket(GamePacket)
+    GamePacket(GamePacket),
 }
 
 impl PacketGameClient {
@@ -49,7 +55,7 @@ impl PacketGameClient {
 impl PacketClient {
     pub fn parse_packet(iter: &mut U8Iter) -> Option<Self> {
         let id = iter.next()?;
-        println!("READING: {}",id);
+        println!("READING: {}", id);
         Some(match id {
             1..=2 => Self::PingPacket(iter.read()?),
             0x05 => Self::OpenConnectionRequestOne(iter.read()?),

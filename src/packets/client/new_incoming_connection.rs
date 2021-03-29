@@ -10,5 +10,5 @@ pub struct NewIncomingConnection {
     // pub system_address: [[u8;6]; 20],
     // pub req_time: Time,
     // pub acc_time: Time,
-    pub padding: u8
+    pub padding: u8,
 }

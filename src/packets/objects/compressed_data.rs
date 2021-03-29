@@ -4,10 +4,14 @@ use crate::packets::traits::PacketDecoder;
 
 pub struct Compressed<T: PacketDecoder>(pub T);
 
-impl <T: PacketDecoder> PacketDecoder for Compressed<T> {
+impl<T: PacketDecoder> PacketDecoder for Compressed<T> {
     fn read(iter: &mut crate::packets::traits::U8Iter) -> Option<Self> {
         iter.next()?;
-        Some(Compressed(T::read(&mut decompress_to_vec_zlib(&iter.collect::<Vec<u8>>()).unwrap().into_iter())?))
+        Some(Compressed(T::read(
+            &mut decompress_to_vec_zlib(&iter.collect::<Vec<u8>>())
+                .unwrap()
+                .into_iter(),
+        )?))
     }
 
     fn write(self, vec: &mut Vec<u8>) -> Option<()> {
@@ -18,13 +22,13 @@ impl <T: PacketDecoder> PacketDecoder for Compressed<T> {
     }
 }
 
-impl <T: PacketDecoder + std::fmt::Debug> std::fmt::Debug for Compressed<T> {
+impl<T: PacketDecoder + std::fmt::Debug> std::fmt::Debug for Compressed<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl <T: PacketDecoder + Clone> Clone for Compressed<T> {
+impl<T: PacketDecoder + Clone> Clone for Compressed<T> {
     fn clone(&self) -> Self {
         Compressed(self.0.clone())
     }

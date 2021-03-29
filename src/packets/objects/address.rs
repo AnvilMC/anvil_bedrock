@@ -7,7 +7,7 @@ use crate::packets::traits::{IterRead, PacketDecoder};
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Address {
     //pub ip_type: u8,
-    pub ip_bytes: Either<[u8; 4],[u8; 28]>,
+    pub ip_bytes: Either<[u8; 4], [u8; 28]>,
     pub port: u16,
 }
 
@@ -20,7 +20,7 @@ impl PacketDecoder for Address {
             } else {
                 Either::Right(iter.read()?)
             },
-            port: iter.read()?
+            port: iter.read()?,
         })
     }
 

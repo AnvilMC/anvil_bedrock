@@ -1,5 +1,5 @@
-use crate::packets::traits::PacketDecoder;
 use crate::packets::bedrock_objects::utils::bit_utils::BitInformation;
+use crate::packets::traits::PacketDecoder;
 
 use super::utils::zig_zag::ZigZag;
 

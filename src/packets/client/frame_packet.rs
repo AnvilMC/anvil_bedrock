@@ -49,37 +49,31 @@ struct FrameData {
     number: usize,
     current: usize,
     missing: HashSet<usize>,
-    current_data: Vec<u8>
+    current_data: Vec<u8>,
 }
 
 impl FrameData {
-
     fn new(frame: FramePacket) -> Self {
         let n = frame.frames.split.unwrap().0 as usize;
         let current = frame.frames.split.unwrap().2 as usize;
         let (frames, current_data) = if current == 0 {
-            (Vec::new(),frame.frames.payload)
+            (Vec::new(), frame.frames.payload)
         } else {
-            (vec![frame],Vec::new())
+            (vec![frame], Vec::new())
         };
-        println!("{:?}",current_data);
+        println!("{:?}", current_data);
         Self {
             number: n,
             missing: (0..n).filter(|x| x != &current).collect(),
             frames,
-            current: if current == 0 {
-                1
-            } else {
-                0
-            },
-            current_data
+            current: if current == 0 { 1 } else { 0 },
+            current_data,
         }
     }
 
     fn flatten(&mut self) {
-
         let current = self.current;
-        
+
         if let Some(e) = self.frames.iter_mut().find_map(|x| {
             let pm = x.frames.split.as_ref().unwrap().2;
             if pm as usize != current {
@@ -95,19 +89,18 @@ impl FrameData {
         }
     }
 
-    fn add(&mut self,mut frame: FramePacket) {
+    fn add(&mut self, mut frame: FramePacket) {
         let current = frame.frames.split.unwrap().2 as usize;
         self.missing.remove(&current);
         if self.current == current {
             // println!("C {:?}",frame.frames.payload.len());
             self.current_data.append(&mut frame.frames.payload);
             // println!("D {:?}",self.current_data.len());
-            self.current+=1;
+            self.current += 1;
             self.flatten();
         } else {
             self.frames.push(frame);
         }
-
     }
 }
 
@@ -132,27 +125,27 @@ impl FrameManager {
         self.last_frames.as_ref().map(|x| x.current).unwrap_or(0)
     }
 
-    pub fn append(&mut self, frames: FramePacket) -> (usize,Option<Vec<u8>>) {
+    pub fn append(&mut self, frames: FramePacket) -> (usize, Option<Vec<u8>>) {
         if frames.frames.split.is_none() {
             // println!("NOT SPLITED {:?}",&frames.frames.payload[..4]);
-            return (0,Some(frames.frames.payload));
+            return (0, Some(frames.frames.payload));
         }
         // println!("SPLITED {:?}",&frames.frames.payload[..4]);
         if let Some(e) = self.last_frames.as_mut() {
             e.add(frames);
-            println!("{} {}",e.current,e.number);
+            println!("{} {}", e.current, e.number);
             if e.current < e.number {
-                return (e.current,None);
+                return (e.current, None);
             }
         } else {
             let b = FrameData::new(frames);
             let pm = b.current;
             self.last_frames = Some(b);
-            return (pm,None);
+            return (pm, None);
         };
         let e = self.last_frames.take().unwrap();
         // println!("G {}",e.current_data.len());
-        (e.current,Some(e.current_data))
+        (e.current, Some(e.current_data))
     }
 }
 #[derive(Debug)]
@@ -348,7 +341,19 @@ use crate::packets::client::PacketGameClient;
 
 #[test]
 fn test() {
-    let bytes: Vec<u8> = vec![132, 1, 0, 0, 96, 6, 128, 1, 0, 0, 0, 0, 0, 0, 19, 4, 164, 169, 147, 117, 74, 188, 6, 23, 0, 228, 222, 0, 0, 0, 0, 254, 128, 0, 0, 0, 0, 0, 0, 4, 227, 14, 150, 164, 169, 147, 117, 16, 0, 0, 0, 6, 23, 0, 228, 222, 0, 0, 0, 0, 32, 1, 0, 0, 40, 74, 3, 100, 4, 227, 14, 150, 164, 169, 147, 117, 0, 0, 0, 0, 4, 83, 235, 255, 254, 228, 222, 4, 83, 238, 127, 254, 228, 222, 4, 83, 232, 127, 254, 228, 222, 4, 63, 87, 255, 243, 228, 222, 4, 63, 87, 229, 254, 228, 222, 4, 86, 1, 227, 65, 228, 222, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 205, 148, 142, 0, 0, 72, 0, 0, 0, 0, 0, 0, 205, 148, 142];
+    let bytes: Vec<u8> = vec![
+        132, 1, 0, 0, 96, 6, 128, 1, 0, 0, 0, 0, 0, 0, 19, 4, 164, 169, 147, 117, 74, 188, 6, 23,
+        0, 228, 222, 0, 0, 0, 0, 254, 128, 0, 0, 0, 0, 0, 0, 4, 227, 14, 150, 164, 169, 147, 117,
+        16, 0, 0, 0, 6, 23, 0, 228, 222, 0, 0, 0, 0, 32, 1, 0, 0, 40, 74, 3, 100, 4, 227, 14, 150,
+        164, 169, 147, 117, 0, 0, 0, 0, 4, 83, 235, 255, 254, 228, 222, 4, 83, 238, 127, 254, 228,
+        222, 4, 83, 232, 127, 254, 228, 222, 4, 63, 87, 255, 243, 228, 222, 4, 63, 87, 229, 254,
+        228, 222, 4, 86, 1, 227, 65, 228, 222, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255,
+        0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0,
+        0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0,
+        4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4,
+        255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 205, 148, 142, 0, 0, 72,
+        0, 0, 0, 0, 0, 0, 205, 148, 142,
+    ];
     let frame: FramePacket = FramePacket::read(&mut bytes.into_iter().skip(1)).unwrap();
     let i = &mut frame.frames.payload.into_iter();
     println!("{:?}", PacketGameClient::parse_packet(i));

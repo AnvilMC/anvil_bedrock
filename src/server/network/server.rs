@@ -48,7 +48,6 @@ impl NetworkManager {
             //println!("{:?}",&buf[..size]);
             let mut iter = buf.clone().into_iter().take(size);
 
-
             if let Some(packet) = PacketClient::parse_packet(&mut iter) {
                 match packet {
                     PacketClient::PingPacket(packet) => {
@@ -74,16 +73,20 @@ impl NetworkManager {
                     }
                     PacketClient::FramePacket(packet) => {
                         let p0 = frame_manager.get_range();
-                        let (p1,p2) = frame_manager.append(packet);
+                        let (p1, p2) = frame_manager.append(packet);
                         //println!("IIII {:?}",p1);
                         if p0 != p1 {
                             socket
-                            .send_packet(
-                                &peer,
-                                Ack {
-                                    record: vec![Record(Either::Right((UInt24Le(0),UInt24Le(p1 as u32 + 3))))]
-                                }
-                            ).await;
+                                .send_packet(
+                                    &peer,
+                                    Ack {
+                                        record: vec![Record(Either::Right((
+                                            UInt24Le(0),
+                                            UInt24Le(p1 as u32 + 3),
+                                        )))],
+                                    },
+                                )
+                                .await;
                         }
                         if let Some(e) = p2 {
                             //println!("REASSEMBLED {:?}", e);
@@ -115,26 +118,26 @@ impl NetworkManager {
                                 }
                                 PacketGameClient::NewIncomingConnection(e) => {
                                     //println!("{:?}", e);
-                                },
+                                }
                                 PacketGameClient::ConnectedPing(packet_ping) => {
                                     socket
-                                            .send_framed(
-                                                &mut frame_manager,
-                                                &peer,
-                                                ConnectedPong::from(packet_ping),
-                                            )
-                                            .await
-                                            .expect("Can't send");
-                                   /*  socket
-                                            .send_packet(
-                                                //&mut frame_manager,
-                                                &peer,
-                                                Ack {
-                                                    record: vec![Record(Either::Left(UInt24Le(0)))],
-                                                },
-                                            )
-                                            .await
-                                            .expect("Can't send ACK"); */
+                                        .send_framed(
+                                            &mut frame_manager,
+                                            &peer,
+                                            ConnectedPong::from(packet_ping),
+                                        )
+                                        .await
+                                        .expect("Can't send");
+                                    /*  socket
+                                    .send_packet(
+                                        //&mut frame_manager,
+                                        &peer,
+                                        Ack {
+                                            record: vec![Record(Either::Left(UInt24Le(0)))],
+                                        },
+                                    )
+                                    .await
+                                    .expect("Can't send ACK"); */
                                 }
                                 PacketGameClient::GamePacket(game_packet) => {
                                     println!("{:?}", game_packet);
@@ -144,16 +147,16 @@ impl NetworkManager {
                     }
                     PacketClient::Ack(ack) => {
                         //println!("{:?}", ack);
-                    },
+                    }
                     PacketClient::ConnectedPing(packet_ping) => {
                         socket
-                                .send_framed(
-                                    &mut frame_manager,
-                                    &peer,
-                                    ConnectedPong::from(packet_ping),
-                                )
-                                .await
-                                .expect("Can't send");
+                            .send_framed(
+                                &mut frame_manager,
+                                &peer,
+                                ConnectedPong::from(packet_ping),
+                            )
+                            .await
+                            .expect("Can't send");
                     }
                 }
             }
