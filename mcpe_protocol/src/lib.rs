@@ -1,9 +1,11 @@
-#![feature(min_const_generics)]
+#![feature(min_const_generics)] // Only here because `rust-analyzer` complains if it is not present
 
 pub mod objects;
+pub mod packets;
 pub mod traits;
 
 pub mod prelude {
     pub use crate::objects::*;
+    pub use crate::packets::*;
     pub use crate::traits::*;
 }

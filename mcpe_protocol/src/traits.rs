@@ -28,7 +28,7 @@ impl<'a, T: Iterator<Item = &'a u8>> Reader for T {
     }
 
     fn next_array<const N: usize>(&mut self) -> Option<[u8; N]> {
-        Some(self.take(N).copied().collect::<Vec<u8>>().try_into().ok()?)
+        self.take(N).copied().collect::<Vec<u8>>().try_into().ok()
     }
 
     fn read(&mut self, length: usize) -> Option<Vec<u8>> {
@@ -58,5 +58,15 @@ impl Writer for Vec<u8> {
     fn write_slice(&mut self, slice: &[u8]) -> Option<()> {
         self.extend_from_slice(slice);
         Some(())
+    }
+}
+
+pub trait PacketReader<T> {
+    fn auto_decode(&mut self) -> Option<T>;
+}
+
+impl<T: MCPEPacketData, E: Reader> PacketReader<T> for E {
+    fn auto_decode(&mut self) -> Option<T> {
+        T::decode(self)
     }
 }
