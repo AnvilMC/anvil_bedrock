@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{borrow::Cow, convert::TryInto};
 
 use crate::{
     prelude::UnsignedVarInt,
@@ -13,6 +13,14 @@ macro_rules! primitive {
             }
             fn encode(&self, writer: &mut impl Writer) -> Option<()> {
                 writer.write_slice(&self.to_be_bytes())
+            }
+        }
+        impl MCPEPacketData for Le<$tp> {
+            fn decode(reader: &mut impl Reader) -> Option<Self> {
+                Some(Le(<$tp>::from_le_bytes(reader.next_array()?)))
+            }
+            fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+                writer.write_slice(&self.0.to_le_bytes())
             }
         }
     };
@@ -35,15 +43,41 @@ impl<T: MCPEPacketData> MCPEPacketData for ByteArrayEncapsulated<T> {
     }
 }
 
+pub enum MaybeOwned<'a, T> {
+    Owned(T),
+    Borrowed(&'a T),
+}
+
+impl<T> AsRef<T> for MaybeOwned<'_, T> {
+    fn as_ref(&self) -> &T {
+        match self {
+            MaybeOwned::Owned(e) => &e,
+            MaybeOwned::Borrowed(e) => e,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ByteArray(pub Vec<u8>);
+
+pub struct Lifetimed<'a, T>(pub MaybeOwned<'a, T>);
+
+impl<'a, T: MCPEPacketData> MCPEPacketData for Lifetimed<'a, T> {
+    fn decode(reader: &mut impl Reader) -> Option<Self> {
+        Some(Self(MaybeOwned::Owned(T::decode(reader)?)))
+    }
+
+    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+        self.0.as_ref().encode(writer)
+    }
+}
 
 impl MCPEPacketData for ByteArray {
     fn decode(reader: &mut impl Reader) -> Option<Self> {
         let length = UnsignedVarInt::decode(reader)?.0 as usize;
 
         let binary = reader.read(length)?;
-        std::fs::write("login_packet.bin", &binary).unwrap();
+        // std::fs::write("login_packet.bin", &binary).unwrap();
 
         Some(ByteArray(binary))
     }
@@ -54,6 +88,7 @@ impl MCPEPacketData for ByteArray {
     }
 }
 
+// TODO: Check for encoding / decoding issue
 impl MCPEPacketData for String {
     fn decode(reader: &mut impl Reader) -> Option<Self> {
         //let length = UnsignedVarInt::decode(reader)?.0 as usize;
@@ -62,6 +97,17 @@ impl MCPEPacketData for String {
         let binary = reader.read(length)?;
 
         String::from_utf8(binary).ok()
+    }
+
+    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+        UnsignedVarInt(self.len() as u32).encode(writer)?;
+        writer.write_slice(self.as_bytes())
+    }
+}
+
+impl MCPEPacketData for &'_ str {
+    fn decode(reader: &mut impl Reader) -> Option<Self> {
+        todo!()
     }
 
     fn encode(&self, writer: &mut impl Writer) -> Option<()> {
@@ -106,6 +152,8 @@ impl<T: MCPEPacketData, const N: usize> MCPEPacketData for [T; N] {
         Some(())
     }
 }
+#[derive(Debug)]
+pub struct Le<T>(pub T);
 
 primitive!(i8, 1); // Named byte in protocol
 primitive!(u16, 2); // Named unsigned byte in protocol
@@ -114,3 +162,4 @@ primitive!(u32, 4); // Named unsigned int in protocol
 primitive!(i32, 4); // Named int in protocol
 primitive!(u64, 8); // Named unsigned long in protocol
 primitive!(i64, 8); // Named long in protocol
+primitive!(f32, 4); // Named float in protocol

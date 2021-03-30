@@ -30,3 +30,9 @@ pub use connection_request_accepted::*;
 
 mod game_packet;
 pub use game_packet::*;
+
+mod connected_ping;
+pub use connected_ping::*;
+
+mod connected_pong;
+pub use connected_pong::*;

@@ -2,7 +2,10 @@
 
 use std::{borrow::Cow, net::SocketAddr};
 
-use mcpe_protocol::prelude::{ByteArray, LoginPacket, MCPEPacket, MCPEPacketData, UnsignedVarInt};
+use mcpe_protocol::prelude::{
+    ByteArray, LoginPacket, MCPEPacket, MCPEPacketData, ResourcePackStack, ResourcePacksInfo,
+    StartGamePacket, UnsignedVarInt, LOGIN_SUCCESS,
+};
 use raknet::prelude::*;
 use tokio::net::UdpSocket;
 
@@ -118,6 +121,8 @@ impl NetworkManager {
                 0x07 => {
                     let packet_phoenix = OpenConnectionRequestTwo::decode(&mut iter).unwrap();
 
+                    frame_manager.set_mtu(packet_phoenix.mtu);
+
                     send(
                         &mut buf_write,
                         &peer,
@@ -169,15 +174,60 @@ impl NetworkManager {
                                             let packet: LoginPacket =
                                                 LoginPacket::decode(&mut iter).unwrap();
 
-                                            std::fs::write("result.bin", packet.chain_data.0)
-                                                .unwrap();
+                                            send_game_packets(
+                                                &mut frame_manager,
+                                                &mut buf_write,
+                                                &peer,
+                                                &socket,
+                                                &[LOGIN_SUCCESS],
+                                            )
+                                            .await
+                                            .unwrap();
 
-                                            //println!("Login packet ? {:?}", packet);
+                                            send_game_packets(
+                                                &mut frame_manager,
+                                                &mut buf_write,
+                                                &peer,
+                                                &socket,
+                                                &[ResourcePacksInfo::default()],
+                                            )
+                                            .await
+                                            .unwrap();
+
+                                            println!("Login packet ? {:?}", packet);
                                             println!("BALZAC");
                                             //println!("Login packet ?");
                                         }
                                         0x02 => {
                                             println!("CLAVIER FRANCAIS DE MERDE");
+                                        }
+                                        0x08 => {
+                                            let i = *(Iterator::next(&mut iter).unwrap());
+                                            println!("Resource pack status {}", i);
+                                            if i == 4 {
+                                                send_game_packets(
+                                                    &mut frame_manager,
+                                                    &mut buf_write,
+                                                    &peer,
+                                                    &socket,
+                                                    &[StartGamePacket::new()],
+                                                )
+                                                .await
+                                                .unwrap();
+                                            } else {
+                                                send_game_packets(
+                                                    &mut frame_manager,
+                                                    &mut buf_write,
+                                                    &peer,
+                                                    &socket,
+                                                    &[ResourcePackStack::default()],
+                                                )
+                                                .await
+                                                .unwrap();
+                                            }
+                                        }
+                                        0x9C => {
+                                            println!("Violation : {:?}", iter.read_to_end());
                                         }
                                         e => {
                                             println!("Game Packet {}", e);
@@ -187,14 +237,26 @@ impl NetworkManager {
 
                                 // TODO Do things with Game Packet
                             }
+                            0x00 => {
+                                let ping = ConnectedPing::decode(&mut e).unwrap();
+                                send_framed(
+                                    &mut frame_manager,
+                                    &mut buf_write,
+                                    &peer,
+                                    &socket,
+                                    ConnectedPong::from(ping),
+                                )
+                                .await
+                                .unwrap();
+                            }
                             e => {
-                                println!("Nous sommes a la HEC!");
+                                println!("Nous sommes a la HEC! {}", e);
                             }
                         }
                     }
                 }
                 e => {
-                    println!("Où allons nous? A la plage!");
+                    println!("Où allons nous? A la plage! {}", e);
                 }
             }
         }
@@ -203,6 +265,26 @@ impl NetworkManager {
 
 // J'eusse déclamé quand nous aillâmes chercher notre pitance que les marauds n'agréent point l'estime qu'on leur adjoint.
 
+async fn send_game_packets<T: MCPEPacket>(
+    frame: &mut FrameManager,
+    buf: &mut Vec<u8>,
+    peer: &SocketAddr,
+    socket: &UdpSocket,
+    packet: &[T],
+) -> Option<()> {
+    buf.clear();
+    let mut buffer = Vec::with_capacity(1024 * 1024);
+    for i in packet {
+        buffer.push(T::PACKET_ID);
+        i.encode(&mut buffer)?;
+        ByteArray(buffer).encode(buf)?;
+        buffer = Vec::with_capacity(1024 * 1024);
+    }
+    let game_packet = GamePacket(buf.clone());
+    send_framed(frame, buf, peer, socket, game_packet).await?;
+    Some(())
+}
+
 async fn send_framed(
     frame: &mut FrameManager,
     buf: &mut Vec<u8>,
@@ -210,12 +292,13 @@ async fn send_framed(
     socket: &UdpSocket,
     packet: impl RaknetPacket,
 ) -> Option<()> {
-    buf.clear();
-    let packet = frame.encode_as_frame(packet);
-    buf.push(packet.id());
-    packet.encode(buf)?;
+    for i in frame.encode_as_frame(packet) {
+        buf.clear();
+        buf.push(i.id());
+        i.encode(buf)?;
 
-    socket.send_to(buf, peer).await.ok()?;
+        socket.send_to(buf, peer).await.ok()?;
+    }
     Some(())
 }
 
@@ -230,4 +313,65 @@ async fn send(
     packet.encode(buf)?;
     socket.send_to(buf, peer).await.ok()?;
     Some(())
+}
+
+// Server client communication (Login process after ClientToServerHandshake)
+//  0x02 : PlayStatus (0) - S > C
+//  0x81 : ClientCacheStatus (bool: true, UNKNOWN 1 byte (Probably bool: true)) - C > S
+//  Group send: S > C
+//    0x28 : SetEntityMotion (VarLong (EntityId), MotionX (Vec3), MotionY: float, MotionZ: float)
+//    0x27 : SetEntityData (VarLong (EntityId), Metadata Dictionary)
+//    0x27 : SetEntityData (VarLong (EntityId), Metadata Dictionary)
+//    0x27 : SetEntityData (VarLong (EntityId), Metadata Dictionary)
+//    0x27 : SetEntityData (VarLong (EntityId), Metadata Dictionary)
+//    0x06 : ResourcePackInfo (bool: accept, bool: script, size1: Le<u16>, size2: Le<u16>)
+//  Group send end
+//  0x08 : ResourcePackResponse (status: byte, packIds: ResourcePackIds) - C > S
+//  0x07 : ResourcePackStack () - S > C
+//  0x08 : ResourcePackResponse (status: byte, packIds: ResourcePackIds) - C > S
+//  Group send: S > C
+//    0x0B : StartGame
+//    0x7A : BiomeDefinitionList
+//    0x77 : AvailableEntityIdentifiers
+//    0x91 : CreativeContent
+//    0x37 : AdventureSettings
+//    0x1D : UpdateAttributes
+//    0x27 : SetEntityData
+//    0x0A : SetTime
+//    0x1D : UpdateAttributes
+//    0x27 : SetEntityData
+//    0x27 : SetEntityData
+//    0x27 : SetEntityData
+//    0x27 : SetEntityData
+//    0x27 : SetEntityData
+//    0x27 : SetEntityData
+//  Group send end
+
+#[test]
+fn decoder() {
+    let file = std::fs::read_to_string("decode.hex").unwrap();
+    for (x, line) in file.lines().enumerate() {
+        let bin = line
+            .as_bytes()
+            .chunks(2)
+            .map(|x| from_hex(x[0]) * 16 + from_hex(x[1]))
+            .collect::<Vec<u8>>();
+        println!("-----------        LINE {}          ---------", x);
+        let bin = bin[bin.iter().position(|x| *x == 0xFE).unwrap() + 1..].to_vec();
+        let mut paket = GamePacket::decode(&mut bin.iter()).unwrap().0;
+        let mut iter = paket.iter();
+        while let Some(e) = ByteArray::decode(&mut iter) {
+            println!("{:02X} {:?}", e.0[0], &e.0[0..e.0.len().min(10)]);
+        }
+        println!("--------------------------------------------");
+    }
+}
+
+fn from_hex(i: u8) -> u8 {
+    match i {
+        b'0'..=b'9' => i - b'0',
+        b'A'..=b'F' => i - b'A' + 10,
+        b'a'..=b'f' => i - b'a' + 10,
+        _ => panic!("WINDOZE FATALE ERREAURE"),
+    }
 }

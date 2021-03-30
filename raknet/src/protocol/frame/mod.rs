@@ -12,10 +12,20 @@ use super::{Ack, Record};
 #[derive(Default)]
 pub struct FrameManager {
     current_frame_number: u32,
+    split_packet_id: u16,
+    mtu: u16,
     frame_parts: Option<FramePart>,
 }
 
 impl FrameManager {
+    pub fn set_mtu(&mut self, mtu: u16) {
+        self.mtu = mtu;
+    }
+
+    pub fn get_mtu(&mut self) -> u16 {
+        self.mtu
+    }
+
     pub fn process(&mut self, packet: FramePacket) -> (Option<Ack>, Option<Vec<u8>>) {
         if packet.split.is_some() {
             if let Some(e) = &mut self.frame_parts {
@@ -25,7 +35,7 @@ impl FrameManager {
                     return (
                         if acc != e.current {
                             Some(Ack {
-                                record: vec![Record(0, e.current)],
+                                record: vec![Record(0, e.current + 1)],
                             })
                         } else {
                             None
@@ -51,7 +61,7 @@ impl FrameManager {
         } else {
             return (
                 Some(Ack {
-                    record: vec![Record(0, 0)],
+                    record: vec![Record(0, packet.sequence_id)],
                 }),
                 Some(packet.payload),
             );
@@ -65,23 +75,59 @@ impl FrameManager {
         )
     }
 
-    pub fn encode_as_frame(&mut self, packet: impl RaknetPacket) -> FramePacket {
-        let tmp = FramePacket {
-            sequence_id: self.current_frame_number,
-            reliability: UNRELIABLE,
-            reliable_index: None,
-            sequenced_index: None,
-            order: None,
-            split: None,
-            payload: {
-                let mut buffer = Vec::with_capacity(1024 * 1024);
-                buffer.push(packet.id());
-                packet.encode(&mut buffer);
-                buffer
-            },
-        };
-        self.current_frame_number += 1;
-        tmp
+    pub fn encode_as_frame(&mut self, packet: impl RaknetPacket) -> Vec<FramePacket> {
+        let mut buffer = Vec::with_capacity(1024 * 1024);
+        buffer.push(packet.id());
+        packet.encode(&mut buffer);
+        println!("FRAME CONTENT LENGTH {}", buffer.len());
+
+        if buffer.len() + 100 >= self.mtu as usize {
+            let mut frames = Vec::new();
+
+            let split = (buffer.len() + 100) / self.mtu as usize + 2;
+            println!("USING SPLITING {} splits", split);
+
+            let mut iter = buffer.into_iter();
+            let mut index = 0;
+            loop {
+                let o = (0..(self.mtu - 100))
+                    .flat_map(|_| iter.next())
+                    .collect::<Vec<u8>>();
+                if o.is_empty() {
+                    break;
+                };
+                frames.push(FramePacket {
+                    sequence_id: self.current_frame_number,
+                    reliability: UNRELIABLE,
+                    reliable_index: None,
+                    sequenced_index: None,
+                    order: None,
+                    split: Some(SplitInfo {
+                        size: split as u32,
+                        id: self.split_packet_id,
+                        index,
+                    }),
+                    payload: o,
+                });
+                self.current_frame_number += 1;
+                index += 1;
+            }
+            self.split_packet_id += 1;
+            frames
+        } else {
+            let tmp = FramePacket {
+                sequence_id: self.current_frame_number,
+                reliability: UNRELIABLE,
+                reliable_index: None,
+                sequenced_index: None,
+                order: None,
+                split: None,
+                payload: buffer,
+            };
+
+            self.current_frame_number += 1;
+            vec![tmp]
+        }
     }
 }
 
