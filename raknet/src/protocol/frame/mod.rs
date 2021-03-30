@@ -115,14 +115,11 @@ impl FramePart {
     fn add(&mut self, mut packet: FramePacket) {
         let p = packet.split.as_ref().unwrap();
         if self.current > p.index || self.waiting_frames.contains_key(&p.index) {
-            println!("CORONED");
             return;
         }
-        println!("EBOLED");
         if self.current == p.index {
             self.data.append(&mut packet.payload);
             self.current += 1;
-            println!("PESTED");
             while let Some(mut e) = self.waiting_frames.remove(&self.current) {
                 self.data.append(&mut e);
                 self.current += 1;

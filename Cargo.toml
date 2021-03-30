@@ -17,3 +17,4 @@ tokio = { version = "1", features = ["macros","rt-multi-thread"]} # , features =
 # miniz_oxide = "0.4.4"
 # raknet = {path = "./raknet"}
 server = {path = "./server"}
+mcpe_protocol = {path = "./mcpe_protocol"}

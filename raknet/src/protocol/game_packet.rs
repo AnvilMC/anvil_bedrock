@@ -15,8 +15,7 @@ impl RaknetPacket for GamePacket {
 impl RaknetPacketData for GamePacket {
     fn decode(reader: &mut impl crate::prelude::Reader) -> Option<Self> {
         let m = reader.read_to_end();
-        println!("LEN: {}", m.len());
-        std::fs::write("game_packet.bin", &m).unwrap();
+        //println!("LEN: {}", m.len());
         Some(GamePacket(inflate::decompress_to_vec(&m).unwrap()))
     }
 

@@ -2,6 +2,7 @@
 
 use std::{borrow::Cow, net::SocketAddr};
 
+use mcpe_protocol::prelude::{ByteArray, LoginPacket, MCPEPacket, MCPEPacketData, UnsignedVarInt};
 use raknet::prelude::*;
 use tokio::net::UdpSocket;
 
@@ -156,16 +157,44 @@ impl NetworkManager {
                             0xFE => {
                                 let _packet_phoenix = GamePacket::decode(&mut e).unwrap();
 
+                                std::fs::write("game_packet.bin", &_packet_phoenix.0).unwrap();
+
+                                let mut iter = _packet_phoenix.0.iter();
+
+                                while let Some(e) = ByteArray::decode(&mut iter) {
+                                    let mut iter = e.0.iter();
+                                    let uint = UnsignedVarInt::decode(&mut iter).unwrap().0 & 0x3FF;
+                                    match uint {
+                                        0x01 => {
+                                            let packet: LoginPacket =
+                                                LoginPacket::decode(&mut iter).unwrap();
+
+                                            std::fs::write("result.bin", packet.chain_data.0)
+                                                .unwrap();
+
+                                            //println!("Login packet ? {:?}", packet);
+                                            println!("BALZAC");
+                                            //println!("Login packet ?");
+                                        }
+                                        0x02 => {
+                                            println!("CLAVIER FRANCAIS DE MERDE");
+                                        }
+                                        e => {
+                                            println!("Game Packet {}", e);
+                                        }
+                                    }
+                                }
+
                                 // TODO Do things with Game Packet
                             }
                             e => {
-                                println!("Nous sommes a la HEC! {:?}", e);
+                                println!("Nous sommes a la HEC!");
                             }
                         }
                     }
                 }
                 e => {
-                    println!("Où allons nous? A la plage! {}", e);
+                    println!("Où allons nous? A la plage!");
                 }
             }
         }

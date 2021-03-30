@@ -1,6 +1,9 @@
 use std::convert::TryInto;
 
-use crate::traits::{MCPEPacketData, Reader, Writer};
+use crate::{
+    prelude::UnsignedVarInt,
+    traits::{MCPEPacketData, Reader, Writer},
+};
 
 macro_rules! primitive {
     ($tp:ty,$len:expr) => {
@@ -13,6 +16,58 @@ macro_rules! primitive {
             }
         }
     };
+}
+
+#[derive(Debug)]
+pub struct ByteArrayEncapsulated<T>(pub T);
+
+impl<T: MCPEPacketData> MCPEPacketData for ByteArrayEncapsulated<T> {
+    fn decode(reader: &mut impl Reader) -> Option<Self> {
+        Some(ByteArrayEncapsulated(T::decode(
+            &mut ByteArray::decode(reader)?.0.iter(),
+        )?))
+    }
+
+    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+        let mut buffer = Vec::new();
+        self.0.encode(&mut buffer)?;
+        ByteArray(buffer).encode(writer)
+    }
+}
+
+#[derive(Debug)]
+pub struct ByteArray(pub Vec<u8>);
+
+impl MCPEPacketData for ByteArray {
+    fn decode(reader: &mut impl Reader) -> Option<Self> {
+        let length = UnsignedVarInt::decode(reader)?.0 as usize;
+
+        let binary = reader.read(length)?;
+        std::fs::write("login_packet.bin", &binary).unwrap();
+
+        Some(ByteArray(binary))
+    }
+
+    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+        UnsignedVarInt(self.0.len() as u32).encode(writer)?;
+        writer.write_slice(&self.0)
+    }
+}
+
+impl MCPEPacketData for String {
+    fn decode(reader: &mut impl Reader) -> Option<Self> {
+        //let length = UnsignedVarInt::decode(reader)?.0 as usize;
+        let length = u32::from_le_bytes(<[u8; 4]>::decode(reader)?) as usize;
+
+        let binary = reader.read(length)?;
+
+        String::from_utf8(binary).ok()
+    }
+
+    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+        UnsignedVarInt(self.len() as u32).encode(writer)?;
+        writer.write_slice(self.as_bytes())
+    }
 }
 
 impl MCPEPacketData for bool {
