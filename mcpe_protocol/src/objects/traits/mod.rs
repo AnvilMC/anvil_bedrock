@@ -15,3 +15,6 @@ pub use string::*;
 
 mod maybe_owned;
 pub use maybe_owned::*;
+
+mod options;
+pub use options::*;

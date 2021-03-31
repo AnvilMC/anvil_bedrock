@@ -24,3 +24,6 @@ pub use biome_definition_list::*;
 
 mod chunk_radius_updated;
 pub use chunk_radius_updated::*;
+
+mod level_chunk;
+pub use level_chunk::*;
