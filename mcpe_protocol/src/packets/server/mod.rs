@@ -21,3 +21,6 @@ pub use creative_content::*;
 
 mod biome_definition_list;
 pub use biome_definition_list::*;
+
+mod chunk_radius_updated;
+pub use chunk_radius_updated::*;
