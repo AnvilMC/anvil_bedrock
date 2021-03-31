@@ -1,5 +1,7 @@
-use crate::prelude::{ByteArray, Le, MCPEPacketData, UnsignedVarInt, VarLong, VecIndexed};
-use packet_derive::MCPEPacketDataAuto;
+use crate::prelude::{
+    ByteArray, Le, MCPEPacket, MCPEPacketData, UnsignedVarInt, VarLong, VecIndexed,
+};
+use packet_derive::{packet, MCPEPacketDataAuto};
 
 #[derive(MCPEPacketDataAuto)]
 pub struct PlayerListPlayer {
@@ -67,6 +69,10 @@ struct Image {
 pub enum PlayerListPacket {
     Add(VecIndexed<PlayerListPlayer, UnsignedVarInt>),
     Remove(VecIndexed<Le<u128>, UnsignedVarInt>),
+}
+
+impl MCPEPacket for PlayerListPacket {
+    const PACKET_ID: u8 = 63;
 }
 
 impl MCPEPacketData for PlayerListPacket {
