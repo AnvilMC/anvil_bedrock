@@ -1,4 +1,4 @@
-use crate::prelude::{BitInformation, MCPEPacketData, ZigZag};
+use crate::prelude::{BitInformation, Indexable, MCPEPacketData, ZigZag};
 
 #[derive(Debug)]
 pub struct UnsignedVarInt(pub u32);
@@ -89,5 +89,25 @@ impl MCPEPacketData for VarInt {
 
     fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Option<()> {
         UnsignedVarInt(self.0.zigzag()).encode(writer)
+    }
+}
+
+impl Indexable for VarInt {
+    fn as_usize(&self) -> usize {
+        self.0 as _
+    }
+
+    fn from_usize(u: usize) -> Self {
+        Self(u as _)
+    }
+}
+
+impl Indexable for UnsignedVarInt {
+    fn as_usize(&self) -> usize {
+        self.0 as _
+    }
+
+    fn from_usize(u: usize) -> Self {
+        Self(u as _)
     }
 }
