@@ -18,3 +18,6 @@ pub use player_list::*;
 
 mod creative_content;
 pub use creative_content::*;
+
+mod biome_definition_list;
+pub use biome_definition_list::*;

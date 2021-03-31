@@ -5,16 +5,6 @@ use crate::prelude::{MCPEPacketData, Reader, UnsignedVarInt, Writer};
 #[derive(Debug)]
 pub struct ByteArray(pub Vec<u8>);
 
-impl<const N: usize> MCPEPacketData for [u8; N] {
-    fn decode(reader: &mut impl Reader) -> Option<Self> {
-        reader.next_array()
-    }
-
-    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
-        writer.write_slice(self)
-    }
-}
-
 impl<T: MCPEPacketData, const N: usize> MCPEPacketData for [T; N] {
     fn decode(reader: &mut impl Reader) -> Option<Self> {
         (0..N)
@@ -62,5 +52,39 @@ impl<T: MCPEPacketData> MCPEPacketData for ByteArrayEncapsulated<T> {
         let mut buffer = Vec::new();
         self.0.encode(&mut buffer)?;
         ByteArray(buffer).encode(writer)
+    }
+}
+
+pub struct ReadToEndVec<T: MCPEPacketData>(pub Vec<T>);
+
+pub struct StaticData<'a, T: MCPEPacketData>(pub &'a [T]);
+
+impl<T: MCPEPacketData> MCPEPacketData for StaticData<'_, T> {
+    fn decode(reader: &mut impl Reader) -> Option<Self> {
+        todo!()
+    }
+
+    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+        for i in self.0 {
+            i.encode(writer)?;
+        }
+        Some(())
+    }
+}
+
+impl<T: MCPEPacketData> MCPEPacketData for ReadToEndVec<T> {
+    fn decode(reader: &mut impl Reader) -> Option<Self> {
+        let mut out = Vec::new();
+        while let Some(e) = T::decode(reader) {
+            out.push(e);
+        }
+        Some(Self(out))
+    }
+
+    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+        for i in &self.0 {
+            i.encode(writer)?;
+        }
+        Some(())
     }
 }

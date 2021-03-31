@@ -29,6 +29,7 @@ macro_rules! primitive {
     };
 }
 
+primitive!(u8, 1); // Named unsigned byte in protocol
 primitive!(i8, 1); // Named byte in protocol
 primitive!(u16, 2); // Named unsigned byte in protocol
 primitive!(i16, 2); // Named byte in protocol
