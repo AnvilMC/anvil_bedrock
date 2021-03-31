@@ -3,3 +3,6 @@
 // pub use MODULE_NAME::*;
 mod tick_sync;
 pub use tick_sync::*;
+
+mod time_packet;
+pub use time_packet::*;
