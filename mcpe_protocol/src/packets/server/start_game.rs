@@ -262,16 +262,18 @@ impl StartGamePacket {
 }
 
 #[derive(Debug)]
-pub struct ItemDataPalette(Vec<ItemDef>);
+pub struct ItemDataPalette(pub Vec<ItemDef>);
 
 #[derive(serde::Deserialize, Debug)]
-struct ItemDef {
-    name: String,
-    id: i16,
+pub struct ItemDef {
+    pub name: String,
+    pub id: i16,
+    pub oldData: Option<i16>,
+    pub oldId: Option<i16>,
 }
 
 impl ItemDataPalette {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self(serde_json::from_str(include_str!("internal_ids.json")).unwrap())
     }
 }
