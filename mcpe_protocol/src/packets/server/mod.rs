@@ -15,3 +15,6 @@ pub use start_game::*;
 
 mod player_list;
 pub use player_list::*;
+
+mod creative_content;
+pub use creative_content::*;

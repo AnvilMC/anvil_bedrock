@@ -1,7 +1,7 @@
 use crate::prelude::{
     ByteArray, Le, MCPEPacket, MCPEPacketData, UnsignedVarInt, VarLong, VecIndexed,
 };
-use packet_derive::{packet, MCPEPacketDataAuto};
+use packet_derive::MCPEPacketDataAuto;
 
 #[derive(MCPEPacketDataAuto)]
 pub struct PlayerListPlayer {
