@@ -27,3 +27,6 @@ pub use chunk_radius_updated::*;
 
 mod level_chunk;
 pub use level_chunk::*;
+
+mod network_chunk_publisher_update;
+pub use network_chunk_publisher_update::*;
