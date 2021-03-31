@@ -60,7 +60,7 @@ pub struct ReadToEndVec<T: MCPEPacketData>(pub Vec<T>);
 pub struct StaticData<'a, T: MCPEPacketData>(pub &'a [T]);
 
 impl<T: MCPEPacketData> MCPEPacketData for StaticData<'_, T> {
-    fn decode(reader: &mut impl Reader) -> Option<Self> {
+    fn decode(_: &mut impl Reader) -> Option<Self> {
         todo!()
     }
 

@@ -349,6 +349,15 @@ async fn send(
 
 #[test]
 fn decoder() {
+    fn from_hex(i: u8) -> u8 {
+        match i {
+            b'0'..=b'9' => i - b'0',
+            b'A'..=b'F' => i - b'A' + 10,
+            b'a'..=b'f' => i - b'a' + 10,
+            _ => panic!("WINDOZE FATALE ERREAURE"),
+        }
+    }
+
     let file = std::fs::read_to_string("decode.hex").unwrap();
     for (x, line) in file.lines().enumerate() {
         let bin = line
@@ -364,14 +373,5 @@ fn decoder() {
             println!("{:02X} {:?}", e.0[0], &e.0[0..e.0.len().min(10)]);
         }
         println!("--------------------------------------------");
-    }
-}
-
-fn from_hex(i: u8) -> u8 {
-    match i {
-        b'0'..=b'9' => i - b'0',
-        b'A'..=b'F' => i - b'A' + 10,
-        b'a'..=b'f' => i - b'a' + 10,
-        _ => panic!("WINDOZE FATALE ERREAURE"),
     }
 }
