@@ -34,9 +34,16 @@ fn main() {
                     )
                 })
                 .collect();
+            let time = x
+                .lines()
+                .find(|x| x.contains("ETHER"))
+                .unwrap()
+                .split(" ")
+                .next()
+                .unwrap();
             let p = PacketHeaders::from_ethernet_slice(&bytes).unwrap();
 
-            Packet(p.payload.to_vec())
+            Packet(p.payload.to_vec(), time.to_owned())
         })
         .collect();
     let mut frame_manager = FrameManager::default();
@@ -48,15 +55,25 @@ fn main() {
                 let packet_phoenix = FramePacket::decode(&mut iter).unwrap();
                 let (ack, paket) = frame_manager.process(packet_phoenix);
 
-                if let Some(e) = paket {
-                    let mut e = e.iter();
+                if let Some(ej) = paket {
+                    let mut e = ej.iter();
                     match *Iterator::next(&mut e).unwrap() {
                         0x09 => {
                             let packet_phoenix = ConnectionRequest::decode(&mut e).unwrap();
                             println!("{:?}", packet_phoenix);
                         }
                         0xFE => {
-                            let _packet_phoenix = GamePacket::decode(&mut e).unwrap();
+                            let _packet_phoenix = match GamePacket::decode(&mut e) {
+                                Some(e) => e,
+                                None => {
+                                    println!(
+                                        "Can't decode game packet {} {:?}",
+                                        i.1,
+                                        &ej[..ej.len().min(25)]
+                                    );
+                                    continue;
+                                }
+                            };
 
                             std::fs::write("game_packet.bin", &_packet_phoenix.0).unwrap();
 
@@ -115,4 +132,4 @@ fn main() {
 }
 
 #[derive(Debug)]
-struct Packet(Vec<u8>);
+struct Packet(Vec<u8>, String);
