@@ -35,26 +35,23 @@ impl MCPEPacketData for LoginPacket {
         let json = serde_json::from_str::<TokenChain>(&chain_data.0)
             .map_err(|_| MCPEPacketDataError::new("json_string", "Invalid json"))?
             .chain;
-        let data_inside: Identity =
-            json.iter()
-                .find_map(|x| {
+        let data_inside: Identity = json
+            .iter()
+            .find_map(|x| {
+                if let Some(e) = x.find(".") {
+                    let x = &x[e + 1..];
                     if let Some(e) = x.find(".") {
-                        let x = &x[e + 1..];
-                        if let Some(e) = x.find(".") {
-                            let base64 = base64::decode(&x[..e]).ok()?;
-                            println!("{:?}", String::from_utf8(base64.clone()));
-                            Some(serde_json::from_slice::<Inside>(&base64).map_err(|_| {
-                                MCPEPacketDataError::new("json_string", "Invalid json")
-                            }))
-                        } else {
-                            None
-                        }
+                        let base64 = base64::decode(&x[..e]).ok()?;
+                        serde_json::from_slice::<Inside>(&base64).ok()
                     } else {
                         None
                     }
-                })
-                .ok_or_else(|| MCPEPacketDataError::new("json_string", "No json"))??
-                .extraData;
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| MCPEPacketDataError::new("json_string", "No json"))?
+            .extraData;
         Ok(Self {
             protocol_version,
             display_name: data_inside.displayName,
