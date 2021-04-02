@@ -166,8 +166,6 @@ impl NetworkManager {
                             0xFE => {
                                 let _packet_phoenix = GamePacket::decode(&mut e).unwrap();
 
-                                std::fs::write("game_packet.bin", &_packet_phoenix.0).unwrap();
-
                                 let mut iter = _packet_phoenix.0.iter();
 
                                 while let Ok(e) = ByteArray::decode(&mut iter) {
@@ -219,15 +217,15 @@ impl NetworkManager {
                                                 .await
                                                 .unwrap();
 
-                                                send_game_packets(
-                                                    &mut frame_manager,
-                                                    &mut buf_write,
-                                                    &peer,
-                                                    &socket,
-                                                    &[CreativeContentPacket::default()],
-                                                )
-                                                .await
-                                                .unwrap();
+                                                // send_game_packets(
+                                                //     &mut frame_manager,
+                                                //     &mut buf_write,
+                                                //     &peer,
+                                                //     &socket,
+                                                //     &[CreativeContentPacket::default()],
+                                                // )
+                                                // .await
+                                                // .unwrap();
 
                                                 send_game_packets(
                                                     &mut frame_manager,
@@ -239,91 +237,91 @@ impl NetworkManager {
                                                 .await
                                                 .unwrap();
 
-                                                send_game_packets(
-                                                    &mut frame_manager,
-                                                    &mut buf_write,
-                                                    &peer,
-                                                    &socket,
-                                                    &[AVAILABLE_ENTITY_IDENTIFIERS_PACKET],
-                                                )
-                                                .await
-                                                .unwrap();
+                                                // send_game_packets(
+                                                //     &mut frame_manager,
+                                                //     &mut buf_write,
+                                                //     &peer,
+                                                //     &socket,
+                                                //     &[AVAILABLE_ENTITY_IDENTIFIERS_PACKET],
+                                                // )
+                                                // .await
+                                                // .unwrap();
 
-                                                let paks = (-5..5)
-                                                    .map(|x| {
-                                                        (-5..5)
-                                                            .map(|z| LevelChunkPacket::new(x, z))
-                                                            .collect::<Vec<_>>()
-                                                    })
-                                                    .flatten()
-                                                    .collect::<Vec<_>>();
+                                                // let paks = (-5..5)
+                                                //     .map(|x| {
+                                                //         (-5..5)
+                                                //             .map(|z| LevelChunkPacket::new(x, z))
+                                                //             .collect::<Vec<_>>()
+                                                //     })
+                                                //     .flatten()
+                                                //     .collect::<Vec<_>>();
 
-                                                send_game_packets(
-                                                    &mut frame_manager,
-                                                    &mut buf_write,
-                                                    &peer,
-                                                    &socket,
-                                                    &paks,
-                                                )
-                                                .await
-                                                .unwrap();
+                                                // send_game_packets(
+                                                //     &mut frame_manager,
+                                                //     &mut buf_write,
+                                                //     &peer,
+                                                //     &socket,
+                                                //     &paks,
+                                                // )
+                                                // .await
+                                                // .unwrap();
 
-                                                send_game_packets(
-                                                    &mut frame_manager,
-                                                    &mut buf_write,
-                                                    &peer,
-                                                    &socket,
-                                                    &[ADVENTURE_SETTINGS],
-                                                )
-                                                .await
-                                                .unwrap();
+                                                // send_game_packets(
+                                                //     &mut frame_manager,
+                                                //     &mut buf_write,
+                                                //     &peer,
+                                                //     &socket,
+                                                //     &[ADVENTURE_SETTINGS],
+                                                // )
+                                                // .await
+                                                // .unwrap();
 
-                                                send_game_packets(
-                                                    &mut frame_manager,
-                                                    &mut buf_write,
-                                                    &peer,
-                                                    &socket,
-                                                    &[
-                                                        InventoryContentPacket {
-                                                            inventory_id: UnsignedVarInt(119),
-                                                            slot: UnsignedVarInt(0),
-                                                        },
-                                                        InventoryContentPacket {
-                                                            inventory_id: UnsignedVarInt(120),
-                                                            slot: UnsignedVarInt(0),
-                                                        },
-                                                        InventoryContentPacket {
-                                                            inventory_id: UnsignedVarInt(121),
-                                                            slot: UnsignedVarInt(0),
-                                                        },
-                                                        InventoryContentPacket {
-                                                            inventory_id: UnsignedVarInt(122),
-                                                            slot: UnsignedVarInt(0),
-                                                        },
-                                                    ],
-                                                )
-                                                .await
-                                                .unwrap();
+                                                // send_game_packets(
+                                                //     &mut frame_manager,
+                                                //     &mut buf_write,
+                                                //     &peer,
+                                                //     &socket,
+                                                //     &[
+                                                //         InventoryContentPacket {
+                                                //             inventory_id: UnsignedVarInt(119),
+                                                //             slot: UnsignedVarInt(0),
+                                                //         },
+                                                //         InventoryContentPacket {
+                                                //             inventory_id: UnsignedVarInt(120),
+                                                //             slot: UnsignedVarInt(0),
+                                                //         },
+                                                //         InventoryContentPacket {
+                                                //             inventory_id: UnsignedVarInt(121),
+                                                //             slot: UnsignedVarInt(0),
+                                                //         },
+                                                //         InventoryContentPacket {
+                                                //             inventory_id: UnsignedVarInt(122),
+                                                //             slot: UnsignedVarInt(0),
+                                                //         },
+                                                //     ],
+                                                // )
+                                                // .await
+                                                // .unwrap();
 
-                                                send_game_packets(
-                                                    &mut frame_manager,
-                                                    &mut buf_write,
-                                                    &peer,
-                                                    &socket,
-                                                    &[AvailableCommandsPacket::default()],
-                                                )
-                                                .await
-                                                .unwrap();
+                                                // send_game_packets(
+                                                //     &mut frame_manager,
+                                                //     &mut buf_write,
+                                                //     &peer,
+                                                //     &socket,
+                                                //     &[AvailableCommandsPacket::default()],
+                                                // )
+                                                // .await
+                                                // .unwrap();
 
-                                                send_game_packets(
-                                                    &mut frame_manager,
-                                                    &mut buf_write,
-                                                    &peer,
-                                                    &socket,
-                                                    &[SetTimePacket { time: VarInt(0) }],
-                                                )
-                                                .await
-                                                .unwrap();
+                                                // send_game_packets(
+                                                //     &mut frame_manager,
+                                                //     &mut buf_write,
+                                                //     &peer,
+                                                //     &socket,
+                                                //     &[SetTimePacket { time: VarInt(0) }],
+                                                // )
+                                                // .await
+                                                // .unwrap();
 
                                                 send_game_packets(
                                                     &mut frame_manager,
