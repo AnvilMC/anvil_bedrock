@@ -1,5 +1,5 @@
 [package]
-name = "server"
+name = "shark_parser"
 version = "0.1.0"
 authors = ["ccgauche <gaucheron.laurent@gmail.com>"]
 edition = "2018"
@@ -9,5 +9,5 @@ edition = "2018"
 [dependencies]
 raknet = {path = "../raknet"}
 mcpe_protocol = {path = "../mcpe_protocol"}
-tokio = { version = "1", default_features = false, features = ["net","rt-multi-thread"]}
-hematite-nbt = "0.5.1"
+# tokio = { version = "1", default_features = false, features = ["net","rt-multi-thread"]}
+etherparse = "0.9.0"

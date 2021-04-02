@@ -3,13 +3,14 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::prelude::{MCPEPacketData, Reader, Writer};
+use crate::prelude::{MCPEPacketData, MCPEPacketDataError, Reader, Writer};
 
 pub trait Indexable {
     fn as_usize(&self) -> usize;
     fn from_usize(u: usize) -> Self;
 }
 
+#[derive(Debug)]
 pub struct VecIndexed<T: MCPEPacketData, E: Indexable + MCPEPacketData>(pub Vec<T>, PhantomData<E>);
 
 impl<T: MCPEPacketData, E: Indexable + MCPEPacketData> From<Vec<T>> for VecIndexed<T, E> {
@@ -50,21 +51,26 @@ impl<T: MCPEPacketData, E: Indexable + MCPEPacketData> DerefMut for VecIndexed<T
 }
 
 impl<T: MCPEPacketData, E: Indexable + MCPEPacketData> MCPEPacketData for VecIndexed<T, E> {
-    fn decode(reader: &mut impl Reader) -> Option<Self> {
-        let size: usize = E::decode(reader)?.as_usize();
-        Some(Self(
+    fn decode(reader: &mut impl Reader) -> Result<Self, MCPEPacketDataError> {
+        let size: usize = E::decode(reader)
+            .map_err(|x| x.map("vec_indexed_index"))?
+            .as_usize();
+        Ok(Self(
             (0..size)
                 .map(|_| T::decode(reader))
-                .collect::<Option<_>>()?,
+                .collect::<Result<_, _>>()
+                .map_err(|x| x.map("vec_indexed_value"))?,
             PhantomData,
         ))
     }
 
-    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
-        (E::from_usize(self.0.len())).encode(writer)?;
+    fn encode(&self, writer: &mut impl Writer) -> Result<(), MCPEPacketDataError> {
+        (E::from_usize(self.0.len()))
+            .encode(writer)
+            .map_err(|x| x.map("vec_indexed_index"))?;
         for i in &self.0 {
-            i.encode(writer)?;
+            i.encode(writer).map_err(|x| x.map("vec_indexed_value"))?;
         }
-        Some(())
+        Ok(())
     }
 }

@@ -1,6 +1,6 @@
 use packet_derive::packet;
 
-use crate::prelude::{ByteArrayEncapsulated, MCPEPacketData};
+use crate::prelude::{ByteArrayEncapsulated, MCPEPacketData, MCPEPacketDataError};
 
 #[packet(0x01)]
 #[derive(Debug)]
@@ -29,11 +29,11 @@ struct Identity {
 }
 
 impl MCPEPacketData for LoginPacket {
-    fn decode(reader: &mut impl crate::prelude::Reader) -> Option<Self> {
+    fn decode(reader: &mut impl crate::prelude::Reader) -> Result<Self, MCPEPacketDataError> {
         let protocol_version = i32::decode(reader)?;
         let chain_data = <ByteArrayEncapsulated<String>>::decode(reader)?;
         let json = serde_json::from_str::<TokenChain>(&chain_data.0)
-            .ok()?
+            .map_err(|_| MCPEPacketDataError::new("json_string", "Invalid json"))?
             .chain;
         let data_inside: Identity = json
             .iter()
@@ -41,23 +41,25 @@ impl MCPEPacketData for LoginPacket {
                 if let Some(e) = x.find(".") {
                     let x = &x[e + 1..];
                     if let Some(e) = x.find(".") {
-                        serde_json::from_slice::<Inside>(&base64::decode(&x[..e]).ok()?).ok()
+                        let base64 = base64::decode(&x[..e]).ok()?;
+                        serde_json::from_slice::<Inside>(&base64).ok()
                     } else {
                         None
                     }
                 } else {
                     None
                 }
-            })?
+            })
+            .ok_or_else(|| MCPEPacketDataError::new("json_string", "No json"))?
             .extraData;
-        Some(Self {
+        Ok(Self {
             protocol_version,
             display_name: data_inside.displayName,
             identity: data_inside.identity,
         })
     }
 
-    fn encode(&self, _writer: &mut impl crate::prelude::Writer) -> Option<()> {
+    fn encode(&self, _writer: &mut impl crate::prelude::Writer) -> Result<(), MCPEPacketDataError> {
         todo!()
     }
 }

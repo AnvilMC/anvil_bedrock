@@ -5,6 +5,7 @@ use crate::{
     prelude::{RaknetPacketData, Reader, Writer},
 };
 
+#[derive(Debug)]
 pub struct UnconnectedPing {
     pub time: i64,
     pub magic: [u8; 16],
