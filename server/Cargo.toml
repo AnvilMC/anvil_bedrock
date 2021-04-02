@@ -10,3 +10,4 @@ edition = "2018"
 raknet = {path = "../raknet"}
 mcpe_protocol = {path = "../mcpe_protocol"}
 tokio = { version = "1", default_features = false, features = ["net","rt-multi-thread"]}
+hematite-nbt = "0.5.1"

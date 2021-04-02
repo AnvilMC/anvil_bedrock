@@ -1,6 +1,6 @@
 #![feature(exclusive_range_pattern)]
 
-use std::{borrow::Cow, net::SocketAddr};
+use std::{borrow::Cow, collections::HashMap, net::SocketAddr};
 
 use mcpe_protocol::prelude::{
     AvailableCommandsPacket, AvailableEntityIdentifiersPacket, ByteArray, ChunkRadiusUpdated,
@@ -28,6 +28,80 @@ pub struct Server {
 
 pub struct World {
     name: String,
+    chunks: HashMap<i64, ChunkSection>,
+}
+
+pub fn get_chunk_id_from_coords(x: i32, z: i32) -> i64 {
+    ((x as i64) << 32) | z as i64
+}
+
+impl World {
+    pub fn get_chunk_section(&self, x: i32, z: i32) -> Option<&ChunkSection> {
+        self.chunks.get(&get_chunk_id_from_coords(x, z))
+    }
+    pub fn get_chunk_section_mut(&self, x: i32, z: i32) -> Option<&mut ChunkSection> {
+        self.chunks.get_mut(&get_chunk_id_from_coords(x, z))
+    }
+    pub fn insert_chunk_section(
+        &self,
+        x: i32,
+        z: i32,
+        section: ChunkSection,
+    ) -> Option<ChunkSection> {
+        self.chunks.insert(get_chunk_id_from_coords(x, z), section)
+    }
+    pub fn remove_chunk_section(&self, x: i32, z: i32) -> Option<ChunkSection> {
+        self.chunks.remove(&get_chunk_id_from_coords(x, z))
+    }
+
+    pub fn get_block(&self, x: i32, y: u8, z: i32) -> Option<&Block> {
+        let chunk = self.get_chunk_section(x >> 4, z >> 4)?;
+        chunk.get_block((x & 0xF) as u8, y, (z & 0xF) as u8)
+    }
+    pub fn get_block_mut(&self, x: i32, y: u8, z: i32) -> Option<&mut Block> {
+        let chunk = self.get_chunk_section_mut(x >> 4, z >> 4)?;
+        chunk.get_block_mut((x & 0xF) as u8, y, (z & 0xF) as u8)
+    }
+    pub fn remove_block(&self, x: i32, y: u8, z: i32) -> Option<Block> {
+        let chunk = self.get_chunk_section_mut(x >> 4, z >> 4)?;
+        chunk.remove_block((x & 0xF) as u8, y, (z & 0xF) as u8)
+    }
+    pub fn insert_block(&self, x: i32, y: u8, z: i32, block: Block) -> Option<Block> {
+        let chunk = self.get_chunk_section_mut(x >> 4, z >> 4)?;
+        chunk.insert_block((x & 0xF) as u8, y, (z & 0xF) as u8, block)
+    }
+}
+
+pub fn get_block_pos_from_coords_in_chunk(x: u8, y: u8, z: u8) -> u16 {
+    ((x & 0xF) << 4 | (z & 0xF) << 8) as u16 | y as u16
+}
+
+#[derive(Default)]
+pub struct ChunkSection {
+    blocks: HashMap<u16, Block>,
+}
+
+impl ChunkSection {
+    pub fn get_block(&self, x: u8, y: u8, z: u8) -> Option<&Block> {
+        self.blocks
+            .get(&get_block_pos_from_coords_in_chunk(x, y, z))
+    }
+    pub fn get_block_mut(&self, x: u8, y: u8, z: u8) -> Option<&mut Block> {
+        self.blocks
+            .get_mut(&get_block_pos_from_coords_in_chunk(x, y, z))
+    }
+    pub fn remove_block(&self, x: u8, y: u8, z: u8) -> Option<Block> {
+        self.blocks
+            .remove(&get_block_pos_from_coords_in_chunk(x, y, z))
+    }
+    pub fn insert_block(&self, x: u8, y: u8, z: u8, block: Block) -> Option<Block> {
+        self.blocks
+            .insert(get_block_pos_from_coords_in_chunk(x, y, z), block)
+    }
+}
+
+struct Block {
+    material_id: u32,
 }
 
 pub struct Player {}
