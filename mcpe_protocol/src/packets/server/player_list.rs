@@ -1,5 +1,6 @@
 use crate::prelude::{
-    ByteArray, Le, MCPEPacket, MCPEPacketData, UnsignedVarInt, VarLong, VecIndexed,
+    ByteArray, Le, MCPEPacket, MCPEPacketData, MCPEPacketDataError, UnsignedVarInt, VarLong,
+    VecIndexed,
 };
 use packet_derive::MCPEPacketDataAuto;
 
@@ -76,26 +77,35 @@ impl MCPEPacket for PlayerListPacket {
 }
 
 impl MCPEPacketData for PlayerListPacket {
-    fn decode(reader: &mut impl crate::prelude::Reader) -> Option<Self> {
+    fn decode(
+        reader: &mut impl crate::prelude::Reader,
+    ) -> Result<Self, crate::prelude::MCPEPacketDataError> {
         let id = reader.next()?;
         match id {
-            0 => Some({
+            0 => Ok({
                 let i: VecIndexed<PlayerListPlayer, UnsignedVarInt> = <_>::decode(reader)?;
                 reader.skip(i.0.len());
                 Self::Add(i)
             }),
-            1 => Some(<_>::decode(reader)?),
-            _ => None,
+            1 => Ok(<_>::decode(reader)?),
+            _ => Err(MCPEPacketDataError::new(
+                "id(PlayerListPacket)",
+                "Invalid PlayerList id",
+            )),
         }
     }
+    // Result<Self, crate::prelude::MCPEPacketDataError>
 
-    fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Option<()> {
+    fn encode(
+        &self,
+        writer: &mut impl crate::prelude::Writer,
+    ) -> Result<(), crate::prelude::MCPEPacketDataError> {
         match self {
             PlayerListPacket::Add(a) => {
                 writer.write(0);
                 a.encode(writer)?;
                 writer.write_slice(&(0..a.len()).map(|_| 1).collect::<Vec<u8>>());
-                Some(())
+                Ok(())
             }
             PlayerListPacket::Remove(a) => {
                 writer.write(1);

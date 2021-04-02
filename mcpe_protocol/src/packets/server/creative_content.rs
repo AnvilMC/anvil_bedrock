@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use packet_derive::{packet, MCPEPacketDataAuto};
 
-use crate::prelude::ItemDataPalette;
+use crate::prelude::ItemDef;
+
 use crate::prelude::{Le, UnsignedVarInt, VarInt, VecIndexed};
 
 #[packet(0x91)]
@@ -24,9 +25,9 @@ impl Default for CreativeContentPacket {
             inventory: {
                 let object: Vec<JsonItem> =
                     serde_json::from_str(include_str!("creativeitems.json")).unwrap();
-                let palette = ItemDataPalette::new();
+                let palette: Vec<ItemDef> =
+                    serde_json::from_str(include_str!("internal_ids.json")).unwrap();
                 let mut legacy_network_map = palette
-                    .0
                     .iter()
                     .flat_map(|x| {
                         if let Some(e) = x.oldId {

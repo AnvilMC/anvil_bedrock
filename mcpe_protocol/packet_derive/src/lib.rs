@@ -10,21 +10,22 @@ pub fn derive_answer_fn(stream: TokenStream) -> TokenStream {
         Fields::Named(e) => {
             let out = format!(
                 r#"impl crate::traits::MCPEPacketData for {} {{
-    fn decode(reader: &mut impl crate::traits::Reader) -> Option<Self> {{
+    fn decode(reader: &mut impl crate::traits::Reader) -> Result<Self, crate::prelude::MCPEPacketDataError> {{
         use crate::traits::PacketReader;
-        Some(Self{{{}}})
+        Ok(Self{{{}}})
     }}
 
-    fn encode(&self, writer: &mut impl crate::traits::Writer) -> Option<()> {{
+    fn encode(&self, writer: &mut impl crate::traits::Writer) -> Result<(), crate::prelude::MCPEPacketDataError> {{
         {}
-        Some(())
+        Ok(())
     }}
 }}"#,
                 parsed.ident.to_string(),
                 e.named
                     .iter()
                     .map(|i| format!(
-                        "{}: reader.auto_decode()?",
+                        "{}: reader.auto_decode().map_err(|x| x.map(\"{}\"))?",
+                        i.ident.as_ref().unwrap().to_string(),
                         i.ident.as_ref().unwrap().to_string()
                     ))
                     .collect::<Vec<_>>()
@@ -32,7 +33,8 @@ pub fn derive_answer_fn(stream: TokenStream) -> TokenStream {
                 e.named
                     .iter()
                     .map(|i| format!(
-                        "self.{}.encode(writer)?;",
+                        "self.{}.encode(writer).map_err(|x| x.map(\"{}\"))?;",
+                        i.ident.as_ref().unwrap().to_string(),
                         i.ident.as_ref().unwrap().to_string()
                     ))
                     .collect::<Vec<_>>()
@@ -43,26 +45,30 @@ pub fn derive_answer_fn(stream: TokenStream) -> TokenStream {
         Fields::Unnamed(e) => {
             let out = format!(
                 r#"impl crate::traits::MCPEPacketData for {} {{
-                    fn decode(reader: &mut impl crate::traits::Reader) -> Option<Self> {{
+                    fn decode(reader: &mut impl crate::traits::Reader) -> Result<Self, crate::prelude::MCPEPacketDataError> {{
                         use crate::traits::PacketReader;
-                        Some(Self({}))
+                        Ok(Self({}))
                     }}
                 
-                    fn encode(&self, writer: &mut impl crate::traits::Writer) -> Option<()> {{
+                    fn encode(&self, writer: &mut impl crate::traits::Writer) -> Result<(), crate::prelude::MCPEPacketDataError> {{
                         {}
-                        Some(())
+                        Ok(())
                     }}
                 }}"#,
                 parsed.ident.to_string(),
                 e.unnamed
                     .iter()
-                    .map(|_| "reader.auto_decode()?".to_owned())
+                    .enumerate()
+                    .map(|(i, _)| format!("reader.auto_decode().map_err(|x| x.map(\"{}\"))?", i))
                     .collect::<Vec<_>>()
                     .join(", "),
                 e.unnamed
                     .iter()
                     .enumerate()
-                    .map(|(i, _)| format!("self.{}.encode(writer)?;", i))
+                    .map(|(i, _)| format!(
+                        "self.{}.encode(writer).map_err(|x| x.map(\"{}\"))?;",
+                        i, i
+                    ))
                     .collect::<Vec<_>>()
                     .join("\n")
             );

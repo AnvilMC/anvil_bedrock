@@ -1,20 +1,20 @@
-use crate::prelude::{Indexable, Le, MCPEPacketData, Reader, Writer};
+use crate::prelude::{Indexable, Le, MCPEPacketData, MCPEPacketDataError, Reader, Writer};
 
 macro_rules! primitive {
     ($tp:ty,$len:expr) => {
         impl MCPEPacketData for $tp {
-            fn decode(reader: &mut impl Reader) -> Option<Self> {
-                Some(Self::from_be_bytes(reader.next_array()?))
+            fn decode(reader: &mut impl Reader) -> Result<Self, MCPEPacketDataError> {
+                Ok(Self::from_be_bytes(reader.next_array()?))
             }
-            fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+            fn encode(&self, writer: &mut impl Writer) -> Result<(), MCPEPacketDataError> {
                 writer.write_slice(&self.to_be_bytes())
             }
         }
         impl MCPEPacketData for Le<$tp> {
-            fn decode(reader: &mut impl Reader) -> Option<Self> {
-                Some(Le(<$tp>::from_le_bytes(reader.next_array()?)))
+            fn decode(reader: &mut impl Reader) -> Result<Self, MCPEPacketDataError> {
+                Ok(Le(<$tp>::from_le_bytes(reader.next_array()?)))
             }
-            fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+            fn encode(&self, writer: &mut impl Writer) -> Result<(), MCPEPacketDataError> {
                 writer.write_slice(&self.0.to_le_bytes())
             }
         }
@@ -41,11 +41,11 @@ primitive!(i64, 8); // Named long in protocol
 primitive!(f32, 4); // Named float in protocol
 
 impl MCPEPacketData for bool {
-    fn decode(reader: &mut impl Reader) -> Option<Self> {
-        Some(reader.next()? == 1)
+    fn decode(reader: &mut impl Reader) -> Result<Self, MCPEPacketDataError> {
+        Ok(reader.next()? == 1)
     }
 
-    fn encode(&self, writer: &mut impl Writer) -> Option<()> {
+    fn encode(&self, writer: &mut impl Writer) -> Result<(), MCPEPacketDataError> {
         writer.write(if *self { 1 } else { 0 })
     }
 }

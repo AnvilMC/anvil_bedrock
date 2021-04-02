@@ -18,7 +18,7 @@ impl Default for ResourcePackStack {
             accept: false,
             behaviour_pack_size: UnsignedVarInt(0),
             resource_pack_size: UnsignedVarInt(0),
-            game_version: ByteArray("1.16.210".as_bytes().to_vec()),
+            game_version: ByteArray::from("1.16.210".as_bytes().to_vec()),
             _exp: Le(0),
             _unknown: false,
         }

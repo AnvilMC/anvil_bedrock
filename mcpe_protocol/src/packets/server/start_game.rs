@@ -1,4 +1,7 @@
-use crate::prelude::{Le, MCPEPacketData, UnsignedVarInt, UnsignedVarLong, VarInt, VarLong};
+use crate::prelude::{
+    Le, MCPEPacketData, MCPEPacketDataError, UnsignedVarInt, UnsignedVarLong, VarInt, VarLong,
+    VecIndexed,
+};
 use packet_derive::{packet, MCPEPacketDataAuto};
 
 #[derive(Debug, MCPEPacketDataAuto)]
@@ -70,33 +73,57 @@ impl GameRule {
             GameRule::ShowDeathMessage(_) => "showDeathMessage",
         }
     }
-}
-#[derive(Debug, Default)]
-pub struct GameRules(Vec<GameRule>);
-
-impl MCPEPacketData for GameRules {
-    fn decode(_: &mut impl crate::prelude::Reader) -> Option<Self> {
-        todo!()
+    fn from_message_bool(st: &str, b: bool) -> Result<Self, MCPEPacketDataError> {
+        Ok(match st.to_lowercase().as_str() {
+            "commandblockoutput" => Self::CommandBlockOutput(b),
+            "dodaylightcycle" => Self::DoDaylightCycle(b),
+            "doentitydrops" => Self::DoEntityDrops(b),
+            "dofiretick" => Self::DoFireTick(b),
+            "doimmediaterespawn" => Self::DoImmediateRespawn(b),
+            "domobloot" => Self::DoMobLoot(b),
+            "domobspawning" => Self::DoMobSpawning(b),
+            "dotiledrops" => Self::DoTileDrops(b),
+            "doweathercycle" => Self::DoWeatherCycle(b),
+            "drowningdamage" => Self::DrowningDamage(b),
+            "falldamage" => Self::FallDamage(b),
+            "firedamage" => Self::FireDamage(b),
+            "keepinventory" => Self::KeepInventory(b),
+            "mobgriefing" => Self::MobGriefing(b),
+            "naturalregeneration" => Self::NaturalRegeneration(b),
+            "pvp" => Self::Pvp(b),
+            "sendcommandfeedback" => Self::SendCommandFeedback(b),
+            "showcoordinates" => Self::ShowCoordinates(b),
+            "tntexplodes" => Self::TntExplodes(b),
+            "showdeathmessage" => Self::ShowDeathMessage(b),
+            e => {
+                return Err(MCPEPacketDataError::new(
+                    "GameRule:from_message_bool",
+                    format!("Invalid gamerule {}", e),
+                ))
+            }
+        })
     }
-
-    fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Option<()> {
-        UnsignedVarInt(self.0.len() as u32).encode(writer)?;
-        for i in &self.0 {
-            i.encode(writer)?;
-        }
-        Some(())
-    }
 }
+
+use crate::traits::PacketReader;
 
 impl MCPEPacketData for GameRule {
     // bool => 1
     // int => 2
-    fn decode(_: &mut impl crate::prelude::Reader) -> Option<Self> {
-        todo!()
+    fn decode(e: &mut impl crate::prelude::Reader) -> Result<Self, MCPEPacketDataError> {
+        let message: String = e.auto_decode().map_err(|x| x.map("gamerule_message"))?;
+        e.skip(1);
+        if message.to_lowercase().as_str() == "randomtickspeed" {
+            let ui: UnsignedVarInt = e.auto_decode().map_err(|x| x.map("uvint_value"))?;
+            Ok(Self::RandomTickSpeed(ui.0))
+        } else {
+            let ui: bool = e.auto_decode().map_err(|x| x.map("bool_value"))?;
+            Self::from_message_bool(&message, ui)
+        }
     }
 
-    fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Option<()> {
-        self.get_message().encode(writer)?;
+    fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Result<(), MCPEPacketDataError> {
+        self.get_message().to_lowercase().encode(writer)?;
         match self {
             GameRule::CommandBlockOutput(e)
             | GameRule::DoDaylightCycle(e)
@@ -122,7 +149,7 @@ impl MCPEPacketData for GameRule {
                 (*e).encode(writer)
             }
             GameRule::RandomTickSpeed(e) => {
-                writer.write(1)?;
+                writer.write(2)?;
                 UnsignedVarInt(*e).encode(writer)
             }
         }
@@ -160,7 +187,7 @@ pub struct StartGamePacket {
     platform_broadcast_intent: VarInt,
     commands_enabled: bool,
     is_texture_packs_required: bool,
-    game_rules: GameRules,
+    game_rules: VecIndexed<GameRule, UnsignedVarInt>,
     _unknown1: Le<i32>, // putLInt(0); maybe (NOT IN PROTOCOL)
     _unknown2: bool,    // putBoolean(false); maybe (NOT IN PROTOCOL)
     bonus_chest: bool,
@@ -189,7 +216,7 @@ pub struct StartGamePacket {
     current_tick: Le<i64>,
     enchantment_seed: VarInt,
     _unknown5: UnsignedVarInt,
-    item_data_palette: ItemDataPalette,
+    item_data_palette: VecIndexed<ItemDef, UnsignedVarInt>,
     multiplayer_correlation_id: String,
     is_inventory_server_authoritative: bool,
 }
@@ -197,7 +224,7 @@ pub struct StartGamePacket {
 impl StartGamePacket {
     pub fn new() -> Self {
         Self {
-            entity_unique_id: VarLong(1),
+            entity_unique_id: VarLong(-1),
             entity_runtime_id: UnsignedVarLong(1),
             player_gamemode: VarInt(1),
             spawn: (0., 0., 0.).into(),
@@ -225,7 +252,7 @@ impl StartGamePacket {
             platform_broadcast_intent: VarInt(0),
             commands_enabled: true,
             is_texture_packs_required: false,
-            game_rules: GameRules::default(),
+            game_rules: VecIndexed::from(vec![]),
             _unknown1: Le(0),
             _unknown2: false,
             bonus_chest: false,
@@ -254,15 +281,12 @@ impl StartGamePacket {
             current_tick: Le(120),
             enchantment_seed: VarInt(548541185),
             _unknown5: UnsignedVarInt(0),
-            item_data_palette: ItemDataPalette::new(),
+            item_data_palette: VecIndexed::from(vec![]),
             multiplayer_correlation_id: "".to_owned(),
             is_inventory_server_authoritative: false,
         }
     }
 }
-
-#[derive(Debug)]
-pub struct ItemDataPalette(pub Vec<ItemDef>);
 
 #[derive(serde::Deserialize, Debug)]
 pub struct ItemDef {
@@ -272,30 +296,19 @@ pub struct ItemDef {
     pub oldId: Option<i16>,
 }
 
-impl ItemDataPalette {
-    pub fn new() -> Self {
-        Self(serde_json::from_str(include_str!("internal_ids.json")).unwrap())
+impl MCPEPacketData for ItemDef {
+    fn decode(reader: &mut impl crate::traits::Reader) -> Result<Self, MCPEPacketDataError> {
+        Ok(Self {
+            name: reader.auto_decode().map_err(|x| x.map("name"))?,
+            id: reader.auto_decode().map_err(|x| x.map("id"))?,
+            oldData: None,
+            oldId: None,
+        })
     }
-}
 
-impl MCPEPacketData for ItemDataPalette {
-    fn decode(_: &mut impl crate::prelude::Reader) -> Option<Self> {
-        todo!()
-    }
-
-    fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Option<()> {
-        UnsignedVarInt(self.0.len() as u32).encode(writer);
-        for entry in &self.0 {
-            entry.name.encode(writer).unwrap();
-            Le(entry.id).encode(writer).unwrap();
-            false.encode(writer).unwrap();
-        }
-        Some(())
-    }
-}
-
-impl Default for ItemDataPalette {
-    fn default() -> Self {
-        Self::new()
+    fn encode(&self, writer: &mut impl crate::traits::Writer) -> Result<(), MCPEPacketDataError> {
+        self.name.encode(writer).map_err(|x| x.map("name"))?;
+        self.id.encode(writer).map_err(|x| x.map("id"))?;
+        writer.write(0).map_err(|x| x.map("empty_byte"))
     }
 }

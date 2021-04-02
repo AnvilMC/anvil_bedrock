@@ -5,9 +5,10 @@ use std::{borrow::Cow, net::SocketAddr};
 use mcpe_protocol::prelude::{
     AvailableCommandsPacket, AvailableEntityIdentifiersPacket, ByteArray, ChunkRadiusUpdated,
     CreativeContentPacket, InventoryContentPacket, LevelChunkPacket, LoginPacket, MCPEPacket,
-    MCPEPacketData, RequestChunkRadiusPacket, ResourcePackStack, ResourcePacksInfo, SetTimePacket,
-    StartGamePacket, TickSyncPacket, UnsignedVarInt, VarInt, ADVENTURE_SETTINGS,
-    AVAILABLE_ENTITY_IDENTIFIERS_PACKET, BIOME_DEFINITION_LIST, LOGIN_SUCCESS, PLAYER_SPAWN,
+    MCPEPacketData, MCPEPacketDataError, RequestChunkRadiusPacket, ResourcePackStack,
+    ResourcePacksInfo, SetTimePacket, StartGamePacket, TickSyncPacket, UnsignedVarInt, VarInt,
+    ADVENTURE_SETTINGS, AVAILABLE_ENTITY_IDENTIFIERS_PACKET, BIOME_DEFINITION_LIST, LOGIN_SUCCESS,
+    PLAYER_SPAWN,
 };
 use raknet::prelude::*;
 use tokio::net::UdpSocket;
@@ -169,7 +170,7 @@ impl NetworkManager {
 
                                 let mut iter = _packet_phoenix.0.iter();
 
-                                while let Some(e) = ByteArray::decode(&mut iter) {
+                                while let Ok(e) = ByteArray::decode(&mut iter) {
                                     let mut iter = e.0.iter();
                                     let uint = UnsignedVarInt::decode(&mut iter).unwrap().0 & 0x3FF;
                                     match uint {
@@ -418,18 +419,18 @@ async fn send_game_packets<T: MCPEPacket>(
     peer: &SocketAddr,
     socket: &UdpSocket,
     packet: &[T],
-) -> Option<()> {
+) -> Result<(), MCPEPacketDataError> {
     buf.clear();
     let mut buffer = Vec::with_capacity(1024 * 1024);
     for i in packet {
         buffer.push(T::PACKET_ID);
         i.encode(&mut buffer)?;
-        ByteArray(buffer).encode(buf)?;
+        ByteArray::from(buffer).encode(buf)?;
         buffer = Vec::with_capacity(1024 * 1024);
     }
     let game_packet = GamePacket(buf.clone());
     send_framed(frame, buf, peer, socket, game_packet).await?;
-    Some(())
+    Ok(())
 }
 
 async fn send_framed(
@@ -438,15 +439,20 @@ async fn send_framed(
     peer: &SocketAddr,
     socket: &UdpSocket,
     packet: impl RaknetPacket,
-) -> Option<()> {
+) -> Result<(), MCPEPacketDataError> {
     for i in frame.encode_as_frame(packet) {
         buf.clear();
         buf.push(i.id());
-        i.encode(buf)?;
+        i.encode(buf)
+            .ok_or_else(|| MCPEPacketDataError::new("raknet_error", "Unknown raknet error"))?;
 
-        socket.send_to(buf, peer).await.ok()?;
+        socket
+            .send_to(buf, peer)
+            .await
+            .ok()
+            .ok_or_else(|| MCPEPacketDataError::new("raknet_error", "Unknown network error"))?;
     }
-    Some(())
+    Ok(())
 }
 
 async fn send(
@@ -454,12 +460,18 @@ async fn send(
     peer: &SocketAddr,
     socket: &UdpSocket,
     packet: impl RaknetPacket,
-) -> Option<()> {
+) -> Result<(), MCPEPacketDataError> {
     buf.clear();
     buf.push(packet.id());
-    packet.encode(buf)?;
-    socket.send_to(buf, peer).await.ok()?;
-    Some(())
+    packet
+        .encode(buf)
+        .ok_or_else(|| MCPEPacketDataError::new("raknet_error", "Unknown raknet error"))?;
+    socket
+        .send_to(buf, peer)
+        .await
+        .ok()
+        .ok_or_else(|| MCPEPacketDataError::new("raknet_error", "Unknown network error"))?;
+    Ok(())
 }
 
 // Server client communication (Login process after ClientToServerHandshake)

@@ -1,9 +1,9 @@
-use packet_derive::packet;
+use packet_derive::{packet, MCPEPacketDataAuto};
 
-use crate::prelude::{Le, MCPEPacketData};
+use crate::prelude::Le;
 
 #[packet(0x06)]
-#[derive(Debug)]
+#[derive(Debug, MCPEPacketDataAuto)]
 pub struct ResourcePacksInfo {
     pub accept: bool,
     pub scripting: bool,
@@ -22,20 +22,20 @@ impl Default for ResourcePacksInfo {
     }
 }
 
-impl MCPEPacketData for ResourcePacksInfo {
-    fn decode(reader: &mut impl crate::prelude::Reader) -> Option<Self> {
-        Some(Self {
-            accept: bool::decode(reader)?,
-            scripting: bool::decode(reader)?,
-            behaviour_pack_size: <Le<u16>>::decode(reader)?,
-            resource_pack_size: <Le<u16>>::decode(reader)?,
-        })
-    }
+// impl MCPEPacketData for ResourcePacksInfo {
+//     fn decode(reader: &mut impl crate::prelude::Reader) -> Result<Self, MCPEPacketDataError> {
+//         Some(Self {
+//             accept: bool::decode(reader)?,
+//             scripting: bool::decode(reader)?,
+//             behaviour_pack_size: <Le<u16>>::decode(reader)?,
+//             resource_pack_size: <Le<u16>>::decode(reader)?,
+//         })
+//     }
 
-    fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Option<()> {
-        self.accept.encode(writer)?;
-        self.scripting.encode(writer)?;
-        self.behaviour_pack_size.encode(writer)?;
-        self.resource_pack_size.encode(writer)
-    }
-}
+//     fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Result<(), MCPEPacketDataError> {
+//         self.accept.encode(writer)?;
+//         self.scripting.encode(writer)?;
+//         self.behaviour_pack_size.encode(writer)?;
+//         self.resource_pack_size.encode(writer)
+//     }
+// }

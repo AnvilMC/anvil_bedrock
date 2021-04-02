@@ -14,7 +14,7 @@ fn from_hex(i: u8) -> u8 {
 }
 
 fn main() {
-    let shark = std::fs::read_to_string("server sent.txt").unwrap();
+    let shark = std::fs::read_to_string("nukkit2.txt").unwrap();
 
     let o: Vec<_> = shark
         .split("+---------+---------------+----------+")
@@ -79,7 +79,7 @@ fn main() {
 
                             let mut iter = _packet_phoenix.0.iter();
 
-                            while let Some(e) = ByteArray::decode(&mut iter) {
+                            while let Ok(e) = ByteArray::decode(&mut iter) {
                                 let mut iter = e.0.iter();
                                 let uint = UnsignedVarInt::decode(&mut iter).unwrap().0 & 0x3FF;
                                 match uint {
@@ -102,6 +102,16 @@ fn main() {
                                     }
                                     0x17 => {
                                         let tick = TickSyncPacket::decode(&mut iter).unwrap();
+                                        println!("{:?}", tick);
+                                    }
+                                    0x0B => {
+                                        let tick = match StartGamePacket::decode(&mut iter) {
+                                            Ok(e) => e,
+                                            Err(e) => {
+                                                println!("{}", e);
+                                                continue;
+                                            }
+                                        };
                                         println!("{:?}", tick);
                                     }
                                     0x9C => {
