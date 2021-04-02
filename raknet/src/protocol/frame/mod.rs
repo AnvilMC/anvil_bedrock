@@ -84,6 +84,7 @@ impl FrameManager {
         if buffer.len() + 100 >= self.mtu as usize {
             let mut frames = Vec::new();
 
+            // TODO: Check if MTU != 0
             let split = (buffer.len() + 100) / self.mtu as usize + 2;
             println!("USING SPLITING {} splits", split);
 

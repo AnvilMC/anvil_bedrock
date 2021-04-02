@@ -6,9 +6,9 @@ use mcpe_protocol::prelude::{
     AvailableCommandsPacket, AvailableEntityIdentifiersPacket, ByteArray, ChunkRadiusUpdated,
     CreativeContentPacket, InventoryContentPacket, LevelChunkPacket, LoginPacket, MCPEPacket,
     MCPEPacketData, MCPEPacketDataError, RequestChunkRadiusPacket, ResourcePackStack,
-    ResourcePacksInfo, SetTimePacket, StartGamePacket, TickSyncPacket, UnsignedVarInt, VarInt,
-    ADVENTURE_SETTINGS, AVAILABLE_ENTITY_IDENTIFIERS_PACKET, BIOME_DEFINITION_LIST, LOGIN_SUCCESS,
-    PLAYER_SPAWN,
+    ResourcePacksInfo, SetTimePacket, StartGamePacket, TickSyncPacket, UnsignedVarInt, UpdateBlock,
+    VarInt, ADVENTURE_SETTINGS, AVAILABLE_ENTITY_IDENTIFIERS_PACKET, BIOME_DEFINITION_LIST,
+    LOGIN_SUCCESS, PLAYER_SPAWN,
 };
 use raknet::prelude::*;
 use tokio::net::UdpSocket;
@@ -39,41 +39,41 @@ impl World {
     pub fn get_chunk_section(&self, x: i32, z: i32) -> Option<&ChunkSection> {
         self.chunks.get(&get_chunk_id_from_coords(x, z))
     }
-    pub fn get_chunk_section_mut(&self, x: i32, z: i32) -> Option<&mut ChunkSection> {
+    pub fn get_chunk_section_mut(&mut self, x: i32, z: i32) -> Option<&mut ChunkSection> {
         self.chunks.get_mut(&get_chunk_id_from_coords(x, z))
     }
     pub fn insert_chunk_section(
-        &self,
+        &mut self,
         x: i32,
         z: i32,
         section: ChunkSection,
     ) -> Option<ChunkSection> {
         self.chunks.insert(get_chunk_id_from_coords(x, z), section)
     }
-    pub fn remove_chunk_section(&self, x: i32, z: i32) -> Option<ChunkSection> {
+    pub fn remove_chunk_section(&mut self, x: i32, z: i32) -> Option<ChunkSection> {
         self.chunks.remove(&get_chunk_id_from_coords(x, z))
     }
 
-    pub fn get_block(&self, x: i32, y: u8, z: i32) -> Option<&Block> {
-        let chunk = self.get_chunk_section(x >> 4, z >> 4)?;
+    pub fn get_block(&mut self, x: i32, y: u8, z: i32) -> Option<&Block> {
+        let chunk = self.get_chunk_section_mut(x >> 4, z >> 4)?;
         chunk.get_block((x & 0xF) as u8, y, (z & 0xF) as u8)
     }
-    pub fn get_block_mut(&self, x: i32, y: u8, z: i32) -> Option<&mut Block> {
+    pub fn get_block_mut(&mut self, x: i32, y: u8, z: i32) -> Option<&mut Block> {
         let chunk = self.get_chunk_section_mut(x >> 4, z >> 4)?;
         chunk.get_block_mut((x & 0xF) as u8, y, (z & 0xF) as u8)
     }
-    pub fn remove_block(&self, x: i32, y: u8, z: i32) -> Option<Block> {
+    pub fn remove_block(&mut self, x: i32, y: u8, z: i32) -> Option<Block> {
         let chunk = self.get_chunk_section_mut(x >> 4, z >> 4)?;
         chunk.remove_block((x & 0xF) as u8, y, (z & 0xF) as u8)
     }
-    pub fn insert_block(&self, x: i32, y: u8, z: i32, block: Block) -> Option<Block> {
+    pub fn insert_block(&mut self, x: i32, y: u8, z: i32, block: Block) -> Option<Block> {
         let chunk = self.get_chunk_section_mut(x >> 4, z >> 4)?;
         chunk.insert_block((x & 0xF) as u8, y, (z & 0xF) as u8, block)
     }
 }
 
 pub fn get_block_pos_from_coords_in_chunk(x: u8, y: u8, z: u8) -> u16 {
-    ((x & 0xF) << 4 | (z & 0xF) << 8) as u16 | y as u16
+    ((x & 0xF) << 4 | (z & 0xF)) as u16 | y as u16
 }
 
 #[derive(Default)]
@@ -82,25 +82,25 @@ pub struct ChunkSection {
 }
 
 impl ChunkSection {
-    pub fn get_block(&self, x: u8, y: u8, z: u8) -> Option<&Block> {
+    pub fn get_block(&mut self, x: u8, y: u8, z: u8) -> Option<&Block> {
         self.blocks
             .get(&get_block_pos_from_coords_in_chunk(x, y, z))
     }
-    pub fn get_block_mut(&self, x: u8, y: u8, z: u8) -> Option<&mut Block> {
+    pub fn get_block_mut(&mut self, x: u8, y: u8, z: u8) -> Option<&mut Block> {
         self.blocks
             .get_mut(&get_block_pos_from_coords_in_chunk(x, y, z))
     }
-    pub fn remove_block(&self, x: u8, y: u8, z: u8) -> Option<Block> {
+    pub fn remove_block(&mut self, x: u8, y: u8, z: u8) -> Option<Block> {
         self.blocks
             .remove(&get_block_pos_from_coords_in_chunk(x, y, z))
     }
-    pub fn insert_block(&self, x: u8, y: u8, z: u8, block: Block) -> Option<Block> {
+    pub fn insert_block(&mut self, x: u8, y: u8, z: u8, block: Block) -> Option<Block> {
         self.blocks
             .insert(get_block_pos_from_coords_in_chunk(x, y, z), block)
     }
 }
 
-struct Block {
+pub struct Block {
     material_id: u32,
 }
 
@@ -113,6 +113,7 @@ impl Server {
             server_uid: 66742570745275,
             worlds: vec![World {
                 name: "Malou is here!".to_owned(),
+                chunks: HashMap::new(),
             }],
             players: vec![Player {}, Player {}],
             motd: motd.to_owned(),
@@ -142,6 +143,7 @@ pub struct NetworkManager {
 
 impl NetworkManager {
     async fn new() -> Self {
+        println!("TEST LOADED");
         Self {
             server_info: Server::new("The first Rust bedrock implementation!"),
             socket: UdpSocket::bind::<SocketAddr>(([0; 4], 19132).into())
@@ -320,15 +322,10 @@ impl NetworkManager {
                                                 // )
                                                 // .await
                                                 // .unwrap();
+                                                // println!("A0");
 
-                                                // let paks = (-5..5)
-                                                //     .map(|x| {
-                                                //         (-5..5)
-                                                //             .map(|z| LevelChunkPacket::new(x, z))
-                                                //             .collect::<Vec<_>>()
-                                                //     })
-                                                //     .flatten()
-                                                //     .collect::<Vec<_>>();
+                                                // let paks = vec![LevelChunkPacket::new(0, 0)];
+                                                // println!("A6");
 
                                                 // send_game_packets(
                                                 //     &mut frame_manager,
@@ -403,6 +400,16 @@ impl NetworkManager {
                                                     &peer,
                                                     &socket,
                                                     &[PLAYER_SPAWN],
+                                                )
+                                                .await
+                                                .unwrap();
+
+                                                send_game_packets(
+                                                    &mut frame_manager,
+                                                    &mut buf_write,
+                                                    &peer,
+                                                    &socket,
+                                                    &[UpdateBlock::new(0, 1, 0)],
                                                 )
                                                 .await
                                                 .unwrap();

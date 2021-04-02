@@ -48,3 +48,6 @@ pub use adventure_settings::*;
 
 mod world;
 pub use world::*;
+
+mod update_block;
+pub use update_block::*;

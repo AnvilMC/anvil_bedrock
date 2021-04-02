@@ -252,7 +252,7 @@ impl StartGamePacket {
             platform_broadcast_intent: VarInt(0),
             commands_enabled: true,
             is_texture_packs_required: false,
-            game_rules: VecIndexed::from(vec![]),
+            game_rules: VecIndexed::from(vec![GameRule::ShowCoordinates(true)]),
             _unknown1: Le(0),
             _unknown2: false,
             bonus_chest: false,

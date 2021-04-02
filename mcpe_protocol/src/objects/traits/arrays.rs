@@ -70,7 +70,7 @@ impl<T: MCPEPacketData> MCPEPacketData for ByteArrayEncapsulated<T> {
 #[derive(Debug)]
 pub struct ReadToEndVec<T: MCPEPacketData>(pub Vec<T>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StaticData<'a, T: MCPEPacketData>(pub &'a [T]);
 
 impl<T: MCPEPacketData> MCPEPacketData for StaticData<'_, T> {

@@ -7,6 +7,7 @@ pub struct BiomeIdArray {
 
 impl Default for BiomeIdArray {
     fn default() -> Self {
+        println!("A3");
         Self { biomes: [0; 256] }
     }
 }
