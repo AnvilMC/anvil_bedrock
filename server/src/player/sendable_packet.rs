@@ -20,11 +20,11 @@ pub enum GamePacketSendablePacket {
 impl GamePacketSendablePacket {
     pub fn get_id(&self) -> u8 {
         match self {
-            GamePacketSendablePacket::PlayStatus(e) => <PlayStatus as MCPEPacket>::PACKET_ID,
+            GamePacketSendablePacket::PlayStatus(_) => <PlayStatus as MCPEPacket>::PACKET_ID,
             GamePacketSendablePacket::ResourcePacksInfo(_) => {
                 <ResourcePacksInfo as MCPEPacket>::PACKET_ID
             }
-            GamePacketSendablePacket::StartGamePacket(e) => {
+            GamePacketSendablePacket::StartGamePacket(_) => {
                 <StartGamePacket as MCPEPacket>::PACKET_ID
             }
             GamePacketSendablePacket::BiomeDefinitionList(_) => {
