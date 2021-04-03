@@ -7,7 +7,7 @@ pub trait MCPEPacketData: Sized {
     fn encode(&self, writer: &mut impl Writer) -> Result<(), MCPEPacketDataError>;
 }
 
-pub trait MCPEPacket: MCPEPacketData {
+pub trait MCPEPacket: MCPEPacketData + Sized {
     const PACKET_ID: u8;
 }
 
