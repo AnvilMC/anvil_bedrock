@@ -1,8 +1,8 @@
 #![feature(exclusive_range_pattern)]
 #![feature(min_const_generics)]
+#![feature(box_syntax)]
 
 mod player;
-use std::time::Duration;
 
 pub use player::*;
 
@@ -10,10 +10,9 @@ mod server;
 pub use server::*;
 
 pub async fn main() {
-    let mut server: Server<1024> = Server::new("Anvil test", 10, ([0; 4], 19132)).await;
+    let mut server: Server<{ 1024 * 10 }> = Server::new("Anvil test", 10, ([0; 4], 19132)).await;
     loop {
         server.tick_network().await;
-        std::thread::sleep(Duration::from_millis(100));
     }
 }
 

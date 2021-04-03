@@ -21,13 +21,13 @@ impl MCPEPacketData for UnsignedVarInt {
     fn encode(&self, writer: &mut impl crate::prelude::Writer) -> Result<(), MCPEPacketDataError> {
         let mut value: u32 = self.0;
         if value == 0 {
-            writer.write(0).map_err(|x| x.map("unsigned_var_int"));
+            writer.write(0).map_err(|x| x.map("unsigned_var_int"))?;
         } else {
             while value >= 0b10000000 {
-                writer.write(((value & 0b01111111) as u8) | 0b10000000);
+                writer.write(((value & 0b01111111) as u8) | 0b10000000)?;
                 value = value >> 7;
             }
-            writer.write((value & 0b01111111) as u8);
+            writer.write((value & 0b01111111) as u8)?;
         }
         Ok(())
     }
@@ -57,10 +57,10 @@ impl MCPEPacketData for UnsignedVarLong {
             writer.write(0).map_err(|x| x.map("unsigned_var_long"))?;
         } else {
             while value >= 0b10000000 {
-                writer.write(((value & 0b01111111) as u8) | 0b10000000);
+                writer.write(((value & 0b01111111) as u8) | 0b10000000)?;
                 value = value >> 7;
             }
-            writer.write((value & 0b01111111) as u8);
+            writer.write((value & 0b01111111) as u8)?;
         }
         Ok(())
     }

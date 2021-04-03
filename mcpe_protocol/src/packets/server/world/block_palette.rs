@@ -60,7 +60,7 @@ impl PalettedBlockStorage {
 
 impl MCPEPacketData for PalettedBlockStorage {
     fn decode(
-        reader: &mut impl crate::traits::Reader,
+        _: &mut impl crate::traits::Reader,
     ) -> Result<Self, crate::prelude::MCPEPacketDataError> {
         todo!()
     }
@@ -206,15 +206,15 @@ lazy_static! {
 
 pub struct GlobalBlockPalette {
     legacy_to_runtime_id: HashMap<i32, i32>,
-    runtime_id_to_legacy: HashMap<i32, i32>,
+    _runtime_id_to_legacy: HashMap<i32, i32>,
 }
 
 impl GlobalBlockPalette {
     pub fn get_or_create_runtime_id(&self, id: i32, meta: i32) -> i32 {
-        let legacyId = id << 6 | meta;
-        if let Some(e) = self.legacy_to_runtime_id.get(&legacyId) {
+        let legacy_id = id << 6 | meta;
+        if let Some(e) = self.legacy_to_runtime_id.get(&legacy_id) {
             *e
-        } else if let Some(e) = self.legacy_to_runtime_id.get(&(legacyId << 6)) {
+        } else if let Some(e) = self.legacy_to_runtime_id.get(&(legacy_id << 6)) {
             *e
         } else {
             panic!("No runtime ID for unknown block {}", id);
@@ -233,7 +233,7 @@ impl GlobalBlockPalette {
             })
             .collect();
         Self {
-            runtime_id_to_legacy: legacy_to_runtime_id.iter().map(|(x, y)| (*y, *x)).collect(),
+            _runtime_id_to_legacy: legacy_to_runtime_id.iter().map(|(x, y)| (*y, *x)).collect(),
             legacy_to_runtime_id,
         }
     }

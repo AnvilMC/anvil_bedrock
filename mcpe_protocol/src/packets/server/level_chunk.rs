@@ -2,10 +2,7 @@ use std::convert::TryInto;
 
 use packet_derive::{packet, MCPEPacketDataAuto};
 
-use crate::prelude::{
-    BiomeIdArray, ByteArray, ByteArrayEncapsulated, Le, PalettedBlockStorage, ReadToEndVec,
-    StaticData, UnsignedVarInt, VarInt, VecIndexed,
-};
+use crate::prelude::{BiomeIdArray, ByteArrayEncapsulated, StaticData, UnsignedVarInt, VarInt};
 
 // #[packet(0x3A)]
 // #[derive(MCPEPacketDataAuto)]
@@ -86,7 +83,17 @@ getLevel().chunkRequestCallback(timestamp, x, z, count, stream.getBuffer()); */
 
 impl LevelChunkPacket {
     pub fn new(chunk_x: i32, chunk_z: i32) -> Self {
-        let SECTION: LevelChunkSection = LevelChunkSection::new(/* {
+        println!("A1");
+        Self {
+            chunk_x: VarInt(chunk_x),
+            chunk_z: VarInt(chunk_z),
+            sub_chunk_count: UnsignedVarInt(6),
+            cache: false,
+            data: ByteArrayEncapsulated(LevelChunkDataData {
+                sections: (0..16)
+                    .map(|_| {
+                        println!("A2");
+                        LevelChunkSection::new(/* {
             let mut palette = PalettedBlockStorage::new(&crate::prelude::V1);
             palette.set_block(
                 3,
@@ -101,18 +108,8 @@ impl LevelChunkPacket {
                 crate::prelude::GLOBAL_BLOCK_PALETTE.get_or_create_runtime_id(1, 0),
             );
             palette
-        } */);
-        println!("A1");
-        Self {
-            chunk_x: VarInt(chunk_x),
-            chunk_z: VarInt(chunk_z),
-            sub_chunk_count: UnsignedVarInt(6),
-            cache: false,
-            data: ByteArrayEncapsulated(LevelChunkDataData {
-                sections: (0..16)
-                    .map(|_| {
-                        println!("A2");
-                        SECTION.clone()
+        } */)
+                        .clone()
                     })
                     .collect::<Vec<_>>()
                     .try_into()

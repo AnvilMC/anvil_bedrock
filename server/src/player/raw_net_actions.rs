@@ -24,6 +24,7 @@ pub async fn send_game_packets(
         ByteArray::from(buffer).encode(buf)?;
         buffer = Vec::with_capacity(1024 * 1024);
     }
+    println!("LLLL {}", buf.len());
     let game_packet = GamePacket(buf.clone());
     send_framed(frame, buf, peer, socket, game_packet).await?;
     Ok(())

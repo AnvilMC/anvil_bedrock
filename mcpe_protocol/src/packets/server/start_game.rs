@@ -4,8 +4,8 @@ use crate::prelude::{
 };
 use packet_derive::{packet, MCPEPacketDataAuto};
 
-#[derive(Debug, MCPEPacketDataAuto)]
-pub struct Vec3f(Le<f32>, Le<f32>, Le<f32>);
+#[derive(Debug, MCPEPacketDataAuto, Clone)]
+pub struct Vec3f(pub Le<f32>, pub Le<f32>, pub Le<f32>);
 
 impl From<(f32, f32, f32)> for Vec3f {
     fn from(e: (f32, f32, f32)) -> Self {
@@ -288,6 +288,7 @@ impl StartGamePacket {
     }
 }
 
+#[allow(non_snake_case)]
 #[derive(serde::Deserialize, Debug)]
 pub struct ItemDef {
     pub name: String,

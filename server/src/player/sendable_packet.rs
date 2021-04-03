@@ -1,6 +1,6 @@
 use mcpe_protocol::{
     prelude::{
-        BiomeDefinitionList, ChunkRadiusUpdated, MCPEPacketDataError, PlayStatus,
+        BiomeDefinitionList, ChunkRadiusUpdated, MCPEPacketDataError, PlayStatus, PlayerMovePacket,
         ResourcePackStack, ResourcePacksInfo, StartGamePacket, TickSyncPacket, UpdateBlock,
     },
     traits::{MCPEPacket, MCPEPacketData, Writer},
@@ -16,6 +16,7 @@ pub enum GamePacketSendablePacket {
     ResourcePackStack(ResourcePackStack),
     ChunkRadiusUpdated(ChunkRadiusUpdated),
     TickSyncPacket(TickSyncPacket),
+    PlayerMovePacket(PlayerMovePacket),
 }
 
 impl GamePacketSendablePacket {
@@ -29,7 +30,7 @@ impl GamePacketSendablePacket {
                 <StartGamePacket as MCPEPacket>::PACKET_ID
             }
             GamePacketSendablePacket::BiomeDefinitionList(_) => {
-                <StartGamePacket as MCPEPacket>::PACKET_ID
+                <BiomeDefinitionList as MCPEPacket>::PACKET_ID
             }
             GamePacketSendablePacket::UpdateBlock(_) => <UpdateBlock as MCPEPacket>::PACKET_ID,
             GamePacketSendablePacket::ResourcePackStack(_) => {
@@ -40,6 +41,9 @@ impl GamePacketSendablePacket {
             }
             GamePacketSendablePacket::TickSyncPacket(_) => {
                 <TickSyncPacket as MCPEPacket>::PACKET_ID
+            }
+            GamePacketSendablePacket::PlayerMovePacket(_) => {
+                <PlayerMovePacket as MCPEPacket>::PACKET_ID
             }
         }
     }
@@ -54,6 +58,7 @@ impl GamePacketSendablePacket {
             GamePacketSendablePacket::ResourcePackStack(e) => e.encode(writer),
             GamePacketSendablePacket::ChunkRadiusUpdated(e) => e.encode(writer),
             GamePacketSendablePacket::TickSyncPacket(e) => e.encode(writer),
+            GamePacketSendablePacket::PlayerMovePacket(e) => e.encode(writer),
         }
     }
 }

@@ -102,13 +102,13 @@ impl MCPEPacketData for PlayerListPacket {
     ) -> Result<(), crate::prelude::MCPEPacketDataError> {
         match self {
             PlayerListPacket::Add(a) => {
-                writer.write(0);
+                writer.write(0)?;
                 a.encode(writer)?;
-                writer.write_slice(&(0..a.len()).map(|_| 1).collect::<Vec<u8>>());
+                writer.write_slice(&(0..a.len()).map(|_| 1).collect::<Vec<u8>>())?;
                 Ok(())
             }
             PlayerListPacket::Remove(a) => {
-                writer.write(1);
+                writer.write(1)?;
                 a.encode(writer)
             }
         }

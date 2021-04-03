@@ -1,6 +1,6 @@
 use packet_derive::{packet, MCPEPacketDataAuto};
 
-use crate::prelude::{BlockVec3, UnsignedVarInt, VarInt, GLOBAL_BLOCK_PALETTE};
+use crate::prelude::{BlockVec3, VarInt, GLOBAL_BLOCK_PALETTE};
 
 #[packet(21)]
 #[derive(Debug, MCPEPacketDataAuto)]

@@ -2,6 +2,7 @@ use std::{borrow::Cow, collections::HashMap};
 use std::{net::SocketAddr, sync::Arc};
 
 use crate::*;
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use raknet::prelude::{
     FramePacket, OpenConnectionReplyOne, OpenConnectionReplyTwo, OpenConnectionRequestOne,
     OpenConnectionRequestTwo, RaknetPacketData, RaknetString, UnconnectedPing, UnconnectedPong,
@@ -24,6 +25,8 @@ pub struct Server<const MAX_PACKET_SIZE: usize> {
     computed_motd: RaknetString,
     pub worlds: Vec<World>,
     pub motd: String,
+    player_handler_r: Receiver<EntityPlayer>,
+    player_handler_s: Arc<Sender<EntityPlayer>>,
 }
 
 impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
@@ -32,6 +35,7 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
         max_players: usize,
         adress: impl Into<SocketAddr>,
     ) -> server::Server<MAX_PACKET_SIZE> {
+        let (s, r) = unbounded();
         Self {
             computed_motd: format!(
                 "MCPE;{};354;1.11;{};{};{};{};Survival",
@@ -53,6 +57,8 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                 name: "AnvilWorld".to_owned(),
                 player_entities: Vec::new(),
             }],
+            player_handler_r: r,
+            player_handler_s: Arc::new(s),
         }
     }
 
@@ -115,6 +121,7 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                     if !self.network_players.contains_key(&peer) {
                         let packet_phoenix = OpenConnectionRequestOne::decode(&mut iter).unwrap();
 
+                        println!("MTU: {}", packet_phoenix.mtu.len());
                         send(
                             &mut self.writer_buf,
                             &peer,
@@ -130,11 +137,12 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                 0x07 => {
                     if !self.network_players.contains_key(&peer) {
                         let packet_phoenix = OpenConnectionRequestTwo::decode(&mut iter).unwrap();
-
+                        println!("MTU1: {}", packet_phoenix.mtu);
                         let player = NetworkPlayer::new(
                             packet_phoenix.mtu,
                             self.udp_socket.clone(),
                             peer.clone(),
+                            self.player_handler_s.clone(),
                         );
                         self.network_players.insert(peer.clone(), player);
 
@@ -164,6 +172,9 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                     println!("Où allons nous? A la plage! {}", e);
                 }
             }
+        }
+        while let Ok(e) = self.player_handler_r.try_recv() {
+            self.worlds[0].player_entities.push(e);
         }
     }
 }
