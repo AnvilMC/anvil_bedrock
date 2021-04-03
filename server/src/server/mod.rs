@@ -86,6 +86,11 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
     }
 
     pub async fn tick_network(&mut self) {
+        for x in self.network_players.values_mut() {
+            if let Err(e) = x.handle_send_packet().await {
+                println!("Error while sending packet : {}", e);
+            }
+        }
         while let Ok((size, peer)) = self.udp_socket.try_recv_from(&mut self.read_buf) {
             let mut iter = self.read_buf.iter().take(size);
             match *Iterator::next(&mut iter).unwrap() {

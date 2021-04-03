@@ -52,7 +52,6 @@ impl NetworkPlayer {
             let mut e = e.iter();
             match *Iterator::next(&mut e).unwrap() {
                 0x09 => {
-                    println!("A");
                     let packet_phoenix = ConnectionRequest::decode(&mut e).unwrap();
 
                     send_framed(
@@ -65,17 +64,23 @@ impl NetworkPlayer {
                     .await?;
                 }
                 0xFE => {
-                    println!("B");
                     let _packet_phoenix = GamePacket::decode(&mut e).unwrap();
 
                     let mut iter = _packet_phoenix.0.iter();
 
                     while let Ok(e) = ByteArray::decode(&mut iter) {
-                        self.handle_game_packet(ReceivablePacket::try_read(&e.0).unwrap())?;
+                        match ReceivablePacket::try_read(&e.0) {
+                            Ok(e) => match self.handle_game_packet(e) {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    println!("Can't handle packet: {}", e)
+                                }
+                            },
+                            Err(e) => println!("Can't decode packet: {}", e),
+                        }
                     }
                 }
                 0x00 => {
-                    println!("C");
                     let ping = ConnectedPing::decode(&mut e).unwrap();
                     send_framed(
                         &mut self.frame_manager,
@@ -159,6 +164,7 @@ impl NetworkPlayer {
     pub async fn handle_send_packet(&mut self) -> Result<(), MCPEPacketDataError> {
         let mut packets = Vec::new();
         while let Ok(e) = self.packet_sending_queue_r.try_recv() {
+            println!("{:?}", e);
             packets.push(e);
         }
         if packets.is_empty() {

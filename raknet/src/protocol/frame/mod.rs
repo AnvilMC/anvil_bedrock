@@ -83,14 +83,14 @@ impl FrameManager {
         let mut buffer = Vec::with_capacity(1024 * 1024);
         buffer.push(packet.id());
         packet.encode(&mut buffer);
-        println!("FRAME CONTENT LENGTH {}", buffer.len());
+        // println!("FRAME CONTENT LENGTH {}", buffer.len());
 
         if buffer.len() + 100 >= self.mtu as usize {
             let mut frames = Vec::new();
 
             // TODO: Check if MTU != 0
             let split = (buffer.len() + 100) / self.mtu as usize + 2;
-            println!("USING SPLITING {} splits", split);
+            // println!("USING SPLITING {} splits", split);
 
             let mut iter = buffer.into_iter();
             let mut index = 0;

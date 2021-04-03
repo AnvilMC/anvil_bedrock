@@ -6,6 +6,7 @@ use mcpe_protocol::{
     traits::{MCPEPacket, MCPEPacketData, Writer},
 };
 
+#[derive(Debug)]
 pub enum GamePacketSendablePacket {
     PlayStatus(PlayStatus),
     ResourcePacksInfo(ResourcePacksInfo),
