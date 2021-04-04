@@ -15,6 +15,12 @@ use crate::NetworkPlayer;
 mod world;
 pub use world::*;
 
+mod entity;
+pub use entity::*;
+
+mod player;
+pub use player::*;
+
 pub const ANVIL_VERSION: &'static str = "Anvil MCBE Alpha 0.0.0";
 
 pub struct Server<const MAX_PACKET_SIZE: usize> {

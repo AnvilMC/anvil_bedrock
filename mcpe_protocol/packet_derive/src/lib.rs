@@ -116,12 +116,12 @@ pub fn packet(args: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn mcpe_packet_data_enum(args: TokenStream, item: TokenStream) -> TokenStream {
-    let i = args.into_iter().next().unwrap(); // .to_string()
-    println!("{:?}", i);
+    let mut args = args.into_iter();
+    let i = args.next().unwrap(); // .to_string()
+    let i1 = args.next().unwrap_or(i.clone()); // .to_string()
 
     let parsed = parse_macro_input!(item as ItemEnum);
     //let variants = parsed.variants.clone();
-    println!("{:?}", parsed.variants);
     let data_map: HashMap<String, i32> = parsed
         .variants
         .iter()
@@ -143,7 +143,7 @@ pub fn mcpe_packet_data_enum(args: TokenStream, item: TokenStream) -> TokenStrea
         r#"impl crate::traits::MCPEPacketData for {} {{
             fn decode(reader: &mut impl crate::traits::Reader) -> Result<Self, crate::prelude::MCPEPacketDataError> {{
                 use crate::traits::PacketReader;
-                Ok(match <{}>::decode(reader)? {{
+                Ok(match <{}>::from(<{}>::decode(reader)?) {{
                     {}
                     e => return Err(crate::prelude::MCPEPacketDataError::new("enum_ident", format!("Invalid enum identifier: {{}}", e)))
                 }})
@@ -153,12 +153,13 @@ pub fn mcpe_packet_data_enum(args: TokenStream, item: TokenStream) -> TokenStrea
                 let ty: {} = match self {{
                     {}
                 }};
-                ty.encode(writer)?;
+                <{}>::from(ty).encode(writer)?;
                 Ok(())
             }}
         }}"#,
         parsed.ident.to_string(),
         i,
+        i1,
         data_map
             .iter()
             .map(|(x, y)| format!("{} => Self::{},", y, x))
@@ -170,6 +171,7 @@ pub fn mcpe_packet_data_enum(args: TokenStream, item: TokenStream) -> TokenStrea
             .map(|(x, y)| format!("Self::{} => {},", x, y))
             .collect::<Vec<_>>()
             .join("\n"),
+        i1,
     );
     let tokens: proc_macro2::TokenStream = imple.parse().unwrap();
     let token_stream = quote! {

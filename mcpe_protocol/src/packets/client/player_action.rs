@@ -11,30 +11,48 @@ pub struct PlayerActionPacket {
     pub face: VarInt,
 }
 
-//TODO add enum for action
+impl From<VarInt> for u8 {
+    fn from(e: VarInt) -> Self {
+        e.0 as u8
+    }
+}
+
+impl From<u8> for VarInt {
+    fn from(e: u8) -> Self {
+        VarInt(e as i32)
+    }
+}
+
+#[repr(u8)]
+#[packet_derive::mcpe_packet_data_enum(u8 VarInt)]
+pub enum PlayerActionType {
+    StartBreak = 0,
+    AbortBreak = 1,
+    StopBreak = 2,
+    GetUpdatedBlock = 3,
+    DropItem = 4,
+    StartSleeping = 5,
+    StopSleeping = 6,
+    Respawn = 7,
+    Jump = 8,
+    StartSprint = 9,
+    StopSprint = 10,
+    StartSneak = 11,
+    StopSneak = 12,
+    DimensionChangeRequest = 13,
+    DimensionChangeAck = 14,
+    StartGlide = 15,
+    StopGlide = 16,
+    BuildDenied = 17,
+    ContinueBreak = 18,
+    SetEnchantmentSeed = 20,
+    StartSwimming = 21,
+    StopSwimming = 22,
+    StartSpinAttack = 23,
+    StopSpinAttack = 24,
+}
+
+//TODO add enum for
 /*
-ACTION_START_BREAK = 0
-ACTION_ABORT_BREAK = 1
-ACTION_STOP_BREAK = 2
-ACTION_GET_UPDATED_BLOCK = 3
-ACTION_DROP_ITEM = 4
-ACTION_START_SLEEPING = 5
-ACTION_STOP_SLEEPING = 6
-ACTION_RESPAWN = 7
-ACTION_JUMP = 8
-ACTION_START_SPRINT = 9
-ACTION_STOP_SPRINT = 10
-ACTION_START_SNEAK = 11
-ACTION_STOP_SNEAK = 12
-ACTION_DIMENSION_CHANGE_REQUEST = 13
-ACTION_DIMENSION_CHANGE_ACK = 14
-ACTION_START_GLIDE = 15
-ACTION_STOP_GLIDE = 16
-ACTION_BUILD_DENIED = 17
-ACTION_CONTINUE_BREAK = 18
-ACTION_SET_ENCHANTMENT_SEED = 20
-ACTION_START_SWIMMING = 21
-ACTION_STOP_SWIMMING = 22
-ACTION_START_SPIN_ATTACK = 23
-ACTION_STOP_SPIN_ATTACK = 24;
+
 */

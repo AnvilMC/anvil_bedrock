@@ -113,29 +113,3 @@ pub enum PlayerMoveMode {
     Teleport = 2,
     Rotation = 3,
 }
-
-// impl MCPEPacketData for PlayerMoveMode {
-//     fn decode(
-//         reader: &mut impl crate::traits::Reader,
-//     ) -> Result<Self, crate::prelude::MCPEPacketDataError> {
-//         Ok(match reader.next()? {
-//             0 => Self::Normal,
-//             1 => Self::Reset,
-//             2 => Self::Teleport,
-//             3 => Self::Rotation,
-//             e => {
-//                 return Err(MCPEPacketDataError::new(
-//                     "player_move_mode",
-//                     format!("Invalid identifier expected [0; 3] found {}", e),
-//                 ))
-//             }
-//         })
-//     }
-
-//     fn encode(
-//         &self,
-//         writer: &mut impl crate::traits::Writer,
-//     ) -> Result<(), crate::prelude::MCPEPacketDataError> {
-//         writer.write(self.clone() as u8)
-//     }
-// }

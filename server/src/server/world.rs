@@ -1,9 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
-
-use crossbeam::channel::Sender;
-use mcpe_protocol::prelude::{Le, PlayerMoveMode, PlayerMovePacket, Vec3f};
-
-use crate::GamePacketSendablePacket;
+use crate::EntityPlayer;
 
 use rayon::prelude::*;
 
@@ -58,58 +53,4 @@ impl WorldManager {
 pub struct World {
     pub name: String,
     pub player_entities: Vec<EntityPlayer>,
-}
-
-#[derive(Clone)]
-pub struct EntityPlayer {
-    pub uuid: String,
-    pub username: String,
-    pub position: Vec3f,
-    pub yaw: f32,
-    pub pitch: f32,
-    pub eid: u64,
-    pub sender: Arc<Sender<GamePacketSendablePacket>>,
-    pub socket_adress: SocketAddr,
-}
-
-impl EntityPlayer {
-    pub fn new(
-        uuid: String,
-        username: String,
-        sender: Arc<Sender<GamePacketSendablePacket>>,
-        socket_adress: SocketAddr,
-    ) -> Self {
-        Self {
-            uuid,
-            username,
-            position: Vec3f(Le(0.0), Le(0.0), Le(0.0)),
-            yaw: 0.0,
-            pitch: 0.0,
-            eid: 1,
-            sender,
-            socket_adress,
-        }
-    }
-
-    pub fn set_pos(&mut self, position: Vec3f, yaw: f32, pitch: f32) {
-        self.position = position;
-        self.yaw = yaw;
-        self.pitch = pitch;
-        self.send_pos(PlayerMoveMode::Normal);
-    }
-
-    pub fn teleport(&mut self, position: Vec3f, yaw: f32, pitch: f32) {
-        self.position = position;
-        self.yaw = yaw;
-        self.pitch = pitch;
-        self.send_pos(PlayerMoveMode::Teleport);
-    }
-
-    pub fn send_pos(&self, mode: PlayerMoveMode) {
-        self.sender
-            .send(GamePacketSendablePacket::PlayerMovePacket(
-                PlayerMovePacket::new(mode, self.position.clone(), self.pitch, self.yaw, self.eid),
-            ))
-            .unwrap();
-    }
 }

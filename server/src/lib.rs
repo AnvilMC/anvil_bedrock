@@ -5,12 +5,16 @@
 
 mod player;
 
-use std::time::Duration;
+use std::{sync::atomic::AtomicU64, time::Duration};
 
 pub use player::*;
 
 mod server;
 pub use server::*;
+
+lazy_static::lazy_static! {
+    pub static ref UUID_ALLOCATOR: AtomicU64 = AtomicU64::new(1);
+}
 
 pub async fn main() {
     PLAYER_JOIN_EVENT.register_async(|_wm, event| {
