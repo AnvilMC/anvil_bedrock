@@ -23,7 +23,7 @@ pub struct Server<const MAX_PACKET_SIZE: usize> {
     writer_buf: Vec<u8>,
     read_buf: [u8; MAX_PACKET_SIZE],
     computed_motd: RaknetString,
-    pub worlds: Vec<World>,
+    pub worlds: WorldManager,
     pub motd: String,
     player_handler_r: Receiver<EntityPlayer>,
     player_handler_s: Arc<Sender<EntityPlayer>>,
@@ -53,10 +53,7 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
             udp_socket: Arc::new(UdpSocket::bind(adress.into()).await.unwrap()),
             writer_buf: Vec::with_capacity(MAX_PACKET_SIZE),
             read_buf: [0; MAX_PACKET_SIZE],
-            worlds: vec![World {
-                name: "AnvilWorld".to_owned(),
-                player_entities: Vec::new(),
-            }],
+            worlds: WorldManager::new(),
             player_handler_r: r,
             player_handler_s: Arc::new(s),
         }
@@ -69,7 +66,7 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
             self.network_players.len(),
             self.network_players.capacity(),
             self.server_uid,
-            self.worlds[0].name
+            self.worlds.worlds[0].name
         )
         .as_str()
         .into();
@@ -161,7 +158,7 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                 0x80..0x8E => {
                     if let Some(player) = self.network_players.get_mut(&peer) {
                         let frame = FramePacket::decode(&mut iter).unwrap();
-                        if let Err(e) = player.handle_frame_receive(frame).await {
+                        if let Err(e) = player.handle_frame_receive(&self.worlds, frame).await {
                             println!("Error while receiving frame {}", e);
                         }
                     } else {
@@ -174,7 +171,7 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
             }
         }
         while let Ok(e) = self.player_handler_r.try_recv() {
-            self.worlds[0].player_entities.push(e);
+            self.worlds.worlds[0].player_entities.push(e);
         }
     }
 }

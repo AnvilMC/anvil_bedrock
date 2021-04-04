@@ -15,8 +15,21 @@ use raknet::prelude::{
 use tokio::net::UdpSocket;
 
 use crate::{
-    send, send_framed, send_game_packets, EntityPlayer, GamePacketSendablePacket, ReceivablePacket,
+    send, send_framed, send_game_packets, EntityPlayer, EventHandler, GamePacketSendablePacket,
+    ReceivablePacket, WorldManager,
 };
+
+use lazy_static::lazy_static;
+
+lazy_static! {
+    pub static ref PLAYER_JOIN_EVENT: EventHandler<PlayerJoinEvent> = EventHandler::new();
+}
+
+pub struct PlayerJoinEvent {
+    pub cancelled: bool,
+    pub entity: EntityPlayer,
+    pub packet_sending_queue: Arc<Sender<GamePacketSendablePacket>>,
+}
 
 pub struct NetworkPlayer {
     pub packet_sending_queue_s: Arc<Sender<GamePacketSendablePacket>>,
@@ -49,6 +62,7 @@ impl NetworkPlayer {
 
     pub async fn handle_frame_receive(
         &mut self,
+        world_manager: &WorldManager,
         packet: FramePacket,
     ) -> Result<(), MCPEPacketDataError> {
         let (ack, paket) = self.frame_manager.process(packet);
@@ -79,7 +93,7 @@ impl NetworkPlayer {
 
                     while let Ok(e) = ByteArray::decode(&mut iter) {
                         match ReceivablePacket::try_read(&e.0) {
-                            Ok(e) => match self.handle_game_packet(e).await {
+                            Ok(e) => match self.handle_game_packet(world_manager, e).await {
                                 Ok(_) => (),
                                 Err(e) => {
                                     println!("Can't handle packet: {}", e)
@@ -111,6 +125,7 @@ impl NetworkPlayer {
 
     pub async fn handle_game_packet(
         &mut self,
+        world_manager: &WorldManager,
         game_packet: ReceivablePacket,
     ) -> Result<(), MCPEPacketDataError> {
         match game_packet {
@@ -126,20 +141,27 @@ impl NetworkPlayer {
                     .await?;
             }
             ReceivablePacket::LoginPacket(e) => {
-                self.new_player_handler
-                    .send(EntityPlayer::new(
+                let mut event = PlayerJoinEvent {
+                    cancelled: false,
+                    entity: EntityPlayer::new(
                         e.identity,
                         e.display_name,
                         self.packet_sending_queue_s.clone(),
                         self.peer.clone(),
+                    ),
+                    packet_sending_queue: self.packet_sending_queue_s.clone(),
+                };
+                PLAYER_JOIN_EVENT.execute_event(world_manager, &mut event);
+
+                if !event.cancelled {
+                    self.new_player_handler.send(event.entity).unwrap();
+                    self.send_game_packet(GamePacketSendablePacket::PlayStatus(LOGIN_SUCCESS))
+                        .await?;
+                    self.send_game_packet(GamePacketSendablePacket::ResourcePacksInfo(
+                        ResourcePacksInfo::default(),
                     ))
-                    .unwrap();
-                self.send_game_packet(GamePacketSendablePacket::PlayStatus(LOGIN_SUCCESS))
                     .await?;
-                self.send_game_packet(GamePacketSendablePacket::ResourcePacksInfo(
-                    ResourcePacksInfo::default(),
-                ))
-                .await?;
+                }
             }
             ReceivablePacket::ResourcePackClientResponsePacket(e) => {
                 if e.status == 4 {
