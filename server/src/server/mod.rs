@@ -3,6 +3,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use crate::*;
 use crossbeam::channel::{unbounded, Receiver, Sender};
+use mcpe_protocol::{GAME_VERSION, PROTOCOL_VERSION};
 use raknet::prelude::{
     FramePacket, OpenConnectionReplyOne, OpenConnectionReplyTwo, OpenConnectionRequestOne,
     OpenConnectionRequestTwo, RaknetPacketData, RaknetString, UnconnectedPing, UnconnectedPong,
@@ -38,8 +39,10 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
         let (s, r) = unbounded();
         Self {
             computed_motd: format!(
-                "MCPE;{};354;1.11;{};{};{};{};Survival",
+                "MCPE;{};{};{};{};{};{};{};Survival",
                 motd,
+                PROTOCOL_VERSION,
+                GAME_VERSION,
                 0,
                 max_players,
                 66742570745275i64,
@@ -61,8 +64,10 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
 
     pub fn update_motd(&mut self) {
         self.computed_motd = format!(
-            "MCPE;{};354;1.11;{};{};{};{};Survival",
+            "MCPE;{};{};{};{};{};{};{};Survival",
             self.motd,
+            PROTOCOL_VERSION,
+            GAME_VERSION,
             self.network_players.len(),
             self.network_players.capacity(),
             self.server_uid,
@@ -118,7 +123,6 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                     if !self.network_players.contains_key(&peer) {
                         let packet_phoenix = OpenConnectionRequestOne::decode(&mut iter).unwrap();
 
-                        println!("MTU: {}", packet_phoenix.mtu.len());
                         send(
                             &mut self.writer_buf,
                             &peer,
@@ -134,7 +138,6 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                 0x07 => {
                     if !self.network_players.contains_key(&peer) {
                         let packet_phoenix = OpenConnectionRequestTwo::decode(&mut iter).unwrap();
-                        println!("MTU1: {}", packet_phoenix.mtu);
                         let player = NetworkPlayer::new(
                             packet_phoenix.mtu,
                             self.udp_socket.clone(),

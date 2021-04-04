@@ -266,7 +266,7 @@ impl StartGamePacket {
             is_from_world_template: false,
             is_world_template_option_locked: false,
             is_only_spawning_v1_villagers: false,
-            vanilla_version: "1.16.210".to_owned(),
+            vanilla_version: crate::GAME_VERSION.to_owned(),
             limited_world_width: 10000,
             limited_world_height: 255,
             is_nether_type: false,

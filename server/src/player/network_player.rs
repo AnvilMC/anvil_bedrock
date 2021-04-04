@@ -4,9 +4,11 @@ use crossbeam::channel::{bounded, Receiver, Sender};
 use mcpe_protocol::{
     prelude::{
         ByteArray, ChunkRadiusUpdated, MCPEPacketDataError, ResourcePackStack, ResourcePacksInfo,
-        StartGamePacket, VarInt, BIOME_DEFINITION_LIST, LOGIN_SUCCESS, PLAYER_SPAWN,
+        StartGamePacket, VarInt, BIOME_DEFINITION_LIST, LOGIN_FAILED_CLIENT, LOGIN_SUCCESS,
+        PLAYER_SPAWN,
     },
     traits::MCPEPacketData,
+    PROTOCOL_VERSION,
 };
 use raknet::prelude::{
     ConnectedPing, ConnectedPong, ConnectionRequest, ConnectionRequestAccepted, FrameManager,
@@ -141,24 +143,31 @@ impl NetworkPlayer {
                     .await?;
             }
             ReceivablePacket::LoginPacket(e) => {
-                let mut event = PlayerJoinEvent {
-                    cancelled: false,
-                    entity: EntityPlayer::new(
-                        e.identity,
-                        e.display_name,
-                        self.packet_sending_queue_s.clone(),
-                        self.peer.clone(),
-                    ),
-                    packet_sending_queue: self.packet_sending_queue_s.clone(),
-                };
-                PLAYER_JOIN_EVENT.execute_event(world_manager, &mut event);
+                if e.protocol_version == PROTOCOL_VERSION {
+                    let mut event = PlayerJoinEvent {
+                        cancelled: false,
+                        entity: EntityPlayer::new(
+                            e.identity,
+                            e.display_name,
+                            self.packet_sending_queue_s.clone(),
+                            self.peer.clone(),
+                        ),
+                        packet_sending_queue: self.packet_sending_queue_s.clone(),
+                    };
+                    PLAYER_JOIN_EVENT.execute_event(world_manager, &mut event);
 
-                if !event.cancelled {
-                    self.new_player_handler.send(event.entity).unwrap();
-                    self.send_game_packet(GamePacketSendablePacket::PlayStatus(LOGIN_SUCCESS))
+                    if !event.cancelled {
+                        self.new_player_handler.send(event.entity).unwrap();
+                        self.send_game_packet(GamePacketSendablePacket::PlayStatus(LOGIN_SUCCESS))
+                            .await?;
+                        self.send_game_packet(GamePacketSendablePacket::ResourcePacksInfo(
+                            ResourcePacksInfo::default(),
+                        ))
                         .await?;
-                    self.send_game_packet(GamePacketSendablePacket::ResourcePacksInfo(
-                        ResourcePacksInfo::default(),
+                    }
+                } else {
+                    self.send_game_packet(GamePacketSendablePacket::PlayStatus(
+                        LOGIN_FAILED_CLIENT,
                     ))
                     .await?;
                 }
