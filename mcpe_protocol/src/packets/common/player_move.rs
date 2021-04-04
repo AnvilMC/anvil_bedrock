@@ -8,22 +8,21 @@ use crate::{
 #[packet(0x13)]
 #[derive(Debug)]
 pub struct PlayerMovePacket {
-    entity_runtime_id: i64,
+    pub entity_runtime_id: UnsignedVarLong,
     position: Vec3f,
     pitch: Le<f32>,
     yaw: Le<f32>,
     head_yaw: Le<f32>,
     mode: PlayerMoveMode,
     on_ground: bool,
-    riding_eid: i64,
+    riding_eid: UnsignedVarLong,
     teleport_cause: Option<TeleportationCause>,
-    frame: UnsignedVarLong,
 }
 
 impl PlayerMovePacket {
-    pub fn new(mode: PlayerMoveMode, position: Vec3f, pitch: f32, yaw: f32, player: i64) -> Self {
+    pub fn new(mode: PlayerMoveMode, position: Vec3f, pitch: f32, yaw: f32, player: u64) -> Self {
         Self {
-            entity_runtime_id: player,
+            entity_runtime_id: UnsignedVarLong(player),
             position,
             pitch: Le(pitch),
             yaw: Le(yaw),
@@ -38,8 +37,7 @@ impl PlayerMovePacket {
             },
             mode,
             on_ground: false,
-            riding_eid: 0,
-            frame: UnsignedVarLong(0),
+            riding_eid: UnsignedVarLong(0),
         }
     }
 }
@@ -72,7 +70,6 @@ impl crate::traits::MCPEPacketData for PlayerMovePacket {
             } else {
                 None
             },
-            frame: reader.auto_decode().map_err(|x| x.map("frame"))?,
         })
     }
     fn encode(
@@ -100,7 +97,6 @@ impl crate::traits::MCPEPacketData for PlayerMovePacket {
         self.teleport_cause
             .encode(writer)
             .map_err(|x| x.map("teleport_cause"))?;
-        self.frame.encode(writer).map_err(|x| x.map("frame"))?;
         Ok(())
     }
 }

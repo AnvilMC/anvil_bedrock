@@ -1,6 +1,6 @@
 use mcpe_protocol::{
     prelude::{
-        LoginPacket, MCPEPacketDataError, RequestChunkRadiusPacket,
+        LoginPacket, MCPEPacketDataError, PlayerMovePacket, RequestChunkRadiusPacket,
         ResourcePackClientResponsePacket, TickSyncPacket, UnsignedVarInt,
     },
     traits::{MCPEPacketData, Reader},
@@ -11,6 +11,7 @@ pub enum ReceivablePacket {
     TickSyncPacket(TickSyncPacket),
     LoginPacket(LoginPacket),
     ResourcePackClientResponsePacket(ResourcePackClientResponsePacket),
+    PlayerMovePacket(PlayerMovePacket),
 }
 
 impl ReceivablePacket {

@@ -68,7 +68,7 @@ pub struct EntityPlayer {
     pub position: Vec3f,
     pub yaw: f32,
     pub pitch: f32,
-    pub eid: i64,
+    pub eid: u64,
     pub sender: Arc<Sender<GamePacketSendablePacket>>,
     pub socket_adress: SocketAddr,
 }

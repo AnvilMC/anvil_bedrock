@@ -14,7 +14,10 @@ pub async fn main() {
     PLAYER_JOIN_EVENT.register_async(|wm, event| {
         println!("JOINEVENT");
         let mut s = event.entity.clone();
-        tokio::spawn(async move { s.teleport((15., 25., 15.).into(), 10.0, 20.0) });
+        tokio::spawn(async move {
+            std::thread::sleep_ms(6000);
+            s.teleport((10., 15., 10.).into(), 0.0, 0.0)
+        });
     });
     let mut server: Server<{ 1024 * 10 }> = Server::new("Anvil test", 10, ([0; 4], 19132)).await;
     loop {

@@ -19,7 +19,7 @@ use crate::{
     ReceivablePacket, WorldManager,
 };
 
-use lazy_static::lazy_static;
+use lazy_static::*;
 
 lazy_static! {
     pub static ref PLAYER_JOIN_EVENT: EventHandler<PlayerJoinEvent> = EventHandler::new();
@@ -185,6 +185,9 @@ impl NetworkPlayer {
                     ))
                     .await?;
                 }
+            }
+            ReceivablePacket::PlayerMovePacket(e) => {
+                println!("Player move {:?}", e.entity_runtime_id);
             }
         }
         Ok(())
