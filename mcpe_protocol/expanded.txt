@@ -1,3 +1,5 @@
+Ident { ident: "u8", span: #0 bytes(31894..31896) }
+[Variant { attrs: [], ident: Ident { ident: "Normal", span: #0 bytes(31964..31970) }, fields: Unit, discriminant: Some((Eq, Lit(ExprLit { attrs: [], lit: Int(LitInt { token: 0 }) }))) }, Comma, Variant { attrs: [], ident: Ident { ident: "Reset", span: #0 bytes(31980..31985) }, fields: Unit, discriminant: Some((Eq, Lit(ExprLit { attrs: [], lit: Int(LitInt { token: 1 }) }))) }, Comma, Variant { attrs: [], ident: Ident { ident: "Teleport", span: #0 bytes(31995..32003) }, fields: Unit, discriminant: Some((Eq, Lit(ExprLit { attrs: [], lit: Int(LitInt { token: 2 }) }))) }, Comma, Variant { attrs: [], ident: Ident { ident: "Rotation", span: #0 bytes(32013..32021) }, fields: Unit, discriminant: Some((Eq, Lit(ExprLit { attrs: [], lit: Int(LitInt { token: 3 }) }))) }, Comma]
 #![feature(prelude_import)]
 #![feature(min_const_generics)]
 #[prelude_import]
@@ -1907,6 +1909,70 @@ pub mod packets {
             }
         }
         pub use resource_pack_client_response_packet::*;
+        mod player_action {
+            use packet_derive::{packet, MCPEPacketDataAuto};
+            use crate::prelude::{BlockVec3, UnsignedVarLong, VarInt};
+            pub struct PlayerActionPacket {
+                pub entity_runtime_id: UnsignedVarLong,
+                pub action: VarInt,
+                pub coordinates: BlockVec3,
+                pub face: VarInt,
+            }
+            #[automatically_derived]
+            #[allow(unused_qualifications)]
+            impl ::core::fmt::Debug for PlayerActionPacket {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                    match *self {
+                        PlayerActionPacket {
+                            entity_runtime_id: ref __self_0_0,
+                            action: ref __self_0_1,
+                            coordinates: ref __self_0_2,
+                            face: ref __self_0_3,
+                        } => {
+                            let mut debug_trait_builder = f.debug_struct("PlayerActionPacket");
+                            let _ = debug_trait_builder.field("entity_runtime_id", &&(*__self_0_0));
+                            let _ = debug_trait_builder.field("action", &&(*__self_0_1));
+                            let _ = debug_trait_builder.field("coordinates", &&(*__self_0_2));
+                            let _ = debug_trait_builder.field("face", &&(*__self_0_3));
+                            debug_trait_builder.finish()
+                        }
+                    }
+                }
+            }
+            impl crate::traits::MCPEPacketData for PlayerActionPacket {
+                fn decode(
+                    reader: &mut impl crate::traits::Reader,
+                ) -> Result<Self, crate::prelude::MCPEPacketDataError> {
+                    use crate::traits::PacketReader;
+                    Ok(Self {
+                        entity_runtime_id: reader
+                            .auto_decode()
+                            .map_err(|x| x.map("entity_runtime_id"))?,
+                        action: reader.auto_decode().map_err(|x| x.map("action"))?,
+                        coordinates: reader.auto_decode().map_err(|x| x.map("coordinates"))?,
+                        face: reader.auto_decode().map_err(|x| x.map("face"))?,
+                    })
+                }
+                fn encode(
+                    &self,
+                    writer: &mut impl crate::traits::Writer,
+                ) -> Result<(), crate::prelude::MCPEPacketDataError> {
+                    self.entity_runtime_id
+                        .encode(writer)
+                        .map_err(|x| x.map("entity_runtime_id"))?;
+                    self.action.encode(writer).map_err(|x| x.map("action"))?;
+                    self.coordinates
+                        .encode(writer)
+                        .map_err(|x| x.map("coordinates"))?;
+                    self.face.encode(writer).map_err(|x| x.map("face"))?;
+                    Ok(())
+                }
+            }
+            impl crate::traits::MCPEPacket for PlayerActionPacket {
+                const PACKET_ID: u8 = 36u8;
+            }
+        }
+        pub use player_action::*;
     }
     mod common {
         mod tick_sync {
@@ -2010,16 +2076,15 @@ pub mod packets {
                 traits::MCPEPacketData,
             };
             pub struct PlayerMovePacket {
-                entity_runtime_id: i64,
-                position: Vec3f,
-                pitch: Le<f32>,
-                yaw: Le<f32>,
-                head_yaw: Le<f32>,
-                mode: PlayerMoveMode,
-                on_ground: bool,
-                riding_eid: i64,
-                teleport_cause: Option<TeleportationCause>,
-                frame: UnsignedVarLong,
+                pub entity_runtime_id: UnsignedVarLong,
+                pub position: Vec3f,
+                pub pitch: Le<f32>,
+                pub yaw: Le<f32>,
+                pub head_yaw: Le<f32>,
+                pub mode: PlayerMoveMode,
+                pub on_ground: bool,
+                pub riding_eid: UnsignedVarLong,
+                pub teleport_cause: Option<TeleportationCause>,
             }
             #[automatically_derived]
             #[allow(unused_qualifications)]
@@ -2036,7 +2101,6 @@ pub mod packets {
                             on_ground: ref __self_0_6,
                             riding_eid: ref __self_0_7,
                             teleport_cause: ref __self_0_8,
-                            frame: ref __self_0_9,
                         } => {
                             let mut debug_trait_builder = f.debug_struct("PlayerMovePacket");
                             let _ = debug_trait_builder.field("entity_runtime_id", &&(*__self_0_0));
@@ -2048,7 +2112,6 @@ pub mod packets {
                             let _ = debug_trait_builder.field("on_ground", &&(*__self_0_6));
                             let _ = debug_trait_builder.field("riding_eid", &&(*__self_0_7));
                             let _ = debug_trait_builder.field("teleport_cause", &&(*__self_0_8));
-                            let _ = debug_trait_builder.field("frame", &&(*__self_0_9));
                             debug_trait_builder.finish()
                         }
                     }
@@ -2063,10 +2126,10 @@ pub mod packets {
                     position: Vec3f,
                     pitch: f32,
                     yaw: f32,
-                    player: i64,
+                    player: u64,
                 ) -> Self {
                     Self {
-                        entity_runtime_id: player,
+                        entity_runtime_id: UnsignedVarLong(player),
                         position,
                         pitch: Le(pitch),
                         yaw: Le(yaw),
@@ -2081,8 +2144,7 @@ pub mod packets {
                         },
                         mode,
                         on_ground: false,
-                        riding_eid: 0,
-                        frame: UnsignedVarLong(0),
+                        riding_eid: UnsignedVarLong(0),
                     }
                 }
             }
@@ -2115,7 +2177,6 @@ pub mod packets {
                         } else {
                             None
                         },
-                        frame: reader.auto_decode().map_err(|x| x.map("frame"))?,
                     })
                 }
                 fn encode(
@@ -2143,7 +2204,6 @@ pub mod packets {
                     self.teleport_cause
                         .encode(writer)
                         .map_err(|x| x.map("teleport_cause"))?;
-                    self.frame.encode(writer).map_err(|x| x.map("frame"))?;
                     Ok(())
                 }
             }
@@ -2252,19 +2312,20 @@ pub mod packets {
                     }
                 }
             }
-            impl MCPEPacketData for PlayerMoveMode {
+            impl crate::traits::MCPEPacketData for PlayerMoveMode {
                 fn decode(
                     reader: &mut impl crate::traits::Reader,
                 ) -> Result<Self, crate::prelude::MCPEPacketDataError> {
-                    Ok(match reader.next()? {
+                    use crate::traits::PacketReader;
+                    Ok(match <u8>::decode(reader)? {
                         0 => Self::Normal,
                         1 => Self::Reset,
                         2 => Self::Teleport,
                         3 => Self::Rotation,
                         e => {
-                            return Err(MCPEPacketDataError::new("player_move_mode", {
+                            return Err(crate::prelude::MCPEPacketDataError::new("enum_ident", {
                                 let res = ::alloc::fmt::format(::core::fmt::Arguments::new_v1(
-                                    &["Invalid identifier expected [0; 3] found "],
+                                    &["Invalid enum identifier: "],
                                     &match (&e,) {
                                         (arg0,) => [::core::fmt::ArgumentV1::new(
                                             arg0,
@@ -2281,7 +2342,14 @@ pub mod packets {
                     &self,
                     writer: &mut impl crate::traits::Writer,
                 ) -> Result<(), crate::prelude::MCPEPacketDataError> {
-                    writer.write(self.clone() as u8)
+                    let ty: u8 = match self {
+                        Self::Normal => 0,
+                        Self::Reset => 1,
+                        Self::Teleport => 2,
+                        Self::Rotation => 3,
+                    };
+                    ty.encode(writer)?;
+                    Ok(())
                 }
             }
         }
@@ -3461,7 +3529,7 @@ pub mod packets {
                         is_from_world_template: false,
                         is_world_template_option_locked: false,
                         is_only_spawning_v1_villagers: false,
-                        vanilla_version: "1.16.210".to_owned(),
+                        vanilla_version: crate::GAME_VERSION.to_owned(),
                         limited_world_width: 10000,
                         limited_world_height: 255,
                         is_nether_type: false,
@@ -5854,3 +5922,5 @@ pub mod prelude {
     pub use crate::packets::*;
     pub use crate::traits::*;
 }
+pub const PROTOCOL_VERSION: i32 = 428;
+pub const GAME_VERSION: &'static str = "1.16.210";

@@ -3,11 +3,10 @@ use std::{net::SocketAddr, sync::Arc};
 use crossbeam::channel::Sender;
 use mcpe_protocol::prelude::{Le, PlayerMoveMode, PlayerMovePacket, Vec3f};
 
-use crate::{GamePacketSendablePacket, Server};
+use crate::GamePacketSendablePacket;
 
 use rayon::prelude::*;
 
-use lazy_static::lazy_static;
 use parking_lot::RwLock;
 
 pub struct EventHandler<T: Send + Sync> {

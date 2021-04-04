@@ -5,17 +5,19 @@
 
 mod player;
 
+use std::time::Duration;
+
 pub use player::*;
 
 mod server;
 pub use server::*;
 
 pub async fn main() {
-    PLAYER_JOIN_EVENT.register_async(|wm, event| {
+    PLAYER_JOIN_EVENT.register_async(|_wm, event| {
         println!("JOINEVENT");
         let mut s = event.entity.clone();
         tokio::spawn(async move {
-            std::thread::sleep_ms(6000);
+            std::thread::sleep(Duration::from_secs(6));
             s.teleport((10., 15., 10.).into(), 0.0, 0.0)
         });
     });

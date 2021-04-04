@@ -1,9 +1,6 @@
 use packet_derive::{packet, MCPEPacketDataAuto};
 
-use crate::{
-    prelude::{Le, MCPEPacketDataError, UnsignedVarLong, Vec3f},
-    traits::MCPEPacketData,
-};
+use crate::prelude::{Le, UnsignedVarLong, Vec3f};
 
 #[packet(0x13)]
 #[derive(Debug)]
@@ -108,6 +105,7 @@ pub struct TeleportationCause {
 }
 
 #[repr(u8)]
+#[packet_derive::mcpe_packet_data_enum(u8)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlayerMoveMode {
     Normal = 0,
@@ -116,28 +114,28 @@ pub enum PlayerMoveMode {
     Rotation = 3,
 }
 
-impl MCPEPacketData for PlayerMoveMode {
-    fn decode(
-        reader: &mut impl crate::traits::Reader,
-    ) -> Result<Self, crate::prelude::MCPEPacketDataError> {
-        Ok(match reader.next()? {
-            0 => Self::Normal,
-            1 => Self::Reset,
-            2 => Self::Teleport,
-            3 => Self::Rotation,
-            e => {
-                return Err(MCPEPacketDataError::new(
-                    "player_move_mode",
-                    format!("Invalid identifier expected [0; 3] found {}", e),
-                ))
-            }
-        })
-    }
+// impl MCPEPacketData for PlayerMoveMode {
+//     fn decode(
+//         reader: &mut impl crate::traits::Reader,
+//     ) -> Result<Self, crate::prelude::MCPEPacketDataError> {
+//         Ok(match reader.next()? {
+//             0 => Self::Normal,
+//             1 => Self::Reset,
+//             2 => Self::Teleport,
+//             3 => Self::Rotation,
+//             e => {
+//                 return Err(MCPEPacketDataError::new(
+//                     "player_move_mode",
+//                     format!("Invalid identifier expected [0; 3] found {}", e),
+//                 ))
+//             }
+//         })
+//     }
 
-    fn encode(
-        &self,
-        writer: &mut impl crate::traits::Writer,
-    ) -> Result<(), crate::prelude::MCPEPacketDataError> {
-        writer.write(self.clone() as u8)
-    }
-}
+//     fn encode(
+//         &self,
+//         writer: &mut impl crate::traits::Writer,
+//     ) -> Result<(), crate::prelude::MCPEPacketDataError> {
+//         writer.write(self.clone() as u8)
+//     }
+// }

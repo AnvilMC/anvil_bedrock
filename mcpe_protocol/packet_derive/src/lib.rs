@@ -1,7 +1,9 @@
 extern crate proc_macro;
+use std::collections::HashMap;
+
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Fields, ItemStruct};
+use syn::{parse_macro_input, Expr, ExprLit, Fields, ItemEnum, ItemStruct, Lit};
 
 #[proc_macro_derive(MCPEPacketDataAuto)]
 pub fn derive_answer_fn(stream: TokenStream) -> TokenStream {
@@ -102,11 +104,77 @@ pub fn packet(args: TokenStream, item: TokenStream) -> TokenStream {
 
     let parsed = parse_macro_input!(item as ItemStruct);
     let ty = parsed.ident.clone();
+
     let token_stream = quote! {
         #parsed
         impl crate::traits::MCPEPacket for #ty {
             const PACKET_ID: u8 = #i;
         }
+    };
+    token_stream.into()
+}
+
+#[proc_macro_attribute]
+pub fn mcpe_packet_data_enum(args: TokenStream, item: TokenStream) -> TokenStream {
+    let i = args.into_iter().next().unwrap(); // .to_string()
+    println!("{:?}", i);
+
+    let parsed = parse_macro_input!(item as ItemEnum);
+    //let variants = parsed.variants.clone();
+    println!("{:?}", parsed.variants);
+    let data_map: HashMap<String, i32> = parsed
+        .variants
+        .iter()
+        .map(|x| {
+            let name = x.ident.to_string();
+            let discriminant = x.discriminant.as_ref().unwrap();
+            if let Expr::Lit(ExprLit {
+                lit: Lit::Int(a), ..
+            }) = &discriminant.1
+            {
+                (name, a.to_string().parse().unwrap())
+            } else {
+                panic!("Should be int in enum discriminant")
+            }
+        })
+        .collect();
+
+    let imple = format!(
+        r#"impl crate::traits::MCPEPacketData for {} {{
+            fn decode(reader: &mut impl crate::traits::Reader) -> Result<Self, crate::prelude::MCPEPacketDataError> {{
+                use crate::traits::PacketReader;
+                Ok(match <{}>::decode(reader)? {{
+                    {}
+                    e => return Err(crate::prelude::MCPEPacketDataError::new("enum_ident", format!("Invalid enum identifier: {{}}", e)))
+                }})
+            }}
+        
+            fn encode(&self, writer: &mut impl crate::traits::Writer) -> Result<(), crate::prelude::MCPEPacketDataError> {{
+                let ty: {} = match self {{
+                    {}
+                }};
+                ty.encode(writer)?;
+                Ok(())
+            }}
+        }}"#,
+        parsed.ident.to_string(),
+        i,
+        data_map
+            .iter()
+            .map(|(x, y)| format!("{} => Self::{},", y, x))
+            .collect::<Vec<_>>()
+            .join("\n"),
+        i,
+        data_map
+            .iter()
+            .map(|(x, y)| format!("Self::{} => {},", x, y))
+            .collect::<Vec<_>>()
+            .join("\n"),
+    );
+    let tokens: proc_macro2::TokenStream = imple.parse().unwrap();
+    let token_stream = quote! {
+        #parsed
+        #tokens
     };
     token_stream.into()
 }
