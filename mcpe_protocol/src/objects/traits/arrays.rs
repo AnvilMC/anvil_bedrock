@@ -16,7 +16,7 @@ impl<T: MCPEPacketData, const N: usize> MCPEPacketData for [T; N] {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|x| x.map("const_array_value"))?
             .try_into()
-            .map_err(|x| {
+            .map_err(|_| {
                 MCPEPacketDataError::new("const_array_value", "Invalid const_array_value length")
             })
     }
@@ -70,7 +70,7 @@ impl<T: MCPEPacketData> MCPEPacketData for ByteArrayEncapsulated<T> {
 #[derive(Debug)]
 pub struct ReadToEndVec<T: MCPEPacketData>(pub Vec<T>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StaticData<'a, T: MCPEPacketData>(pub &'a [T]);
 
 impl<T: MCPEPacketData> MCPEPacketData for StaticData<'_, T> {

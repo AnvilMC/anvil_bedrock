@@ -27,13 +27,13 @@ impl Default for CreativeContentPacket {
                     serde_json::from_str(include_str!("creativeitems.json")).unwrap();
                 let palette: Vec<ItemDef> =
                     serde_json::from_str(include_str!("internal_ids.json")).unwrap();
-                let mut legacy_network_map = palette
+                let legacy_network_map = palette
                     .iter()
                     .flat_map(|x| {
-                        if let Some(e) = x.oldId {
-                            let fullId =
+                        if let Some(_) = x.oldId {
+                            let full_id =
                                 (x.id as i32) << 16 | (x.oldData.unwrap_or(0) as i32 & 0x7FFF) << 1;
-                            Some((fullId, x.id << 1 | (x.oldData.map(|_| 1).unwrap_or(0))))
+                            Some((full_id, x.id << 1 | (x.oldData.map(|_| 1).unwrap_or(0))))
                         } else {
                             None
                         }

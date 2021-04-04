@@ -11,3 +11,6 @@ pub mod prelude {
     pub use crate::packets::*;
     pub use crate::traits::*;
 }
+
+pub const PROTOCOL_VERSION: i32 = 428;
+pub const GAME_VERSION: &'static str = "1.16.210";

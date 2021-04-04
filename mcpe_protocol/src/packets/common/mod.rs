@@ -6,3 +6,6 @@ pub use tick_sync::*;
 
 mod time_packet;
 pub use time_packet::*;
+
+mod player_move;
+pub use player_move::*;

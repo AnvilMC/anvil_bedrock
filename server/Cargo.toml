@@ -11,3 +11,7 @@ raknet = {path = "../raknet"}
 mcpe_protocol = {path = "../mcpe_protocol"}
 tokio = { version = "1", default_features = false, features = ["net","rt-multi-thread"]}
 hematite-nbt = "0.5.1"
+crossbeam = "0.8.0"
+lazy_static = "1.4.0"
+parking_lot = "0.11.1"
+rayon = "1.5.0"

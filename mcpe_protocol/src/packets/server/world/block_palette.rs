@@ -7,7 +7,7 @@ use crate::{
     traits::MCPEPacketData,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PalettedBlockStorage {
     palette: Vec<i32>, // Default capacity 16
     bit_array: BitArray,
@@ -21,7 +21,7 @@ impl PalettedBlockStorage {
                 vec.push(GLOBAL_BLOCK_PALETTE.get_or_create_runtime_id(0, 0));
                 vec
             },
-            bit_array: version.create_palette(4096, [0; 4096]),
+            bit_array: version.create_palette([0; 4096]),
         }
     }
 
@@ -29,7 +29,7 @@ impl PalettedBlockStorage {
         return (self.bit_array.version.bits as u8) << 1 | if runtime { 1 } else { 0 };
     }
 
-    fn set_block(&mut self, index: i32, runtime_id: i32) {
+    pub fn set_block(&mut self, index: i32, runtime_id: i32) {
         let id = self.id_for(runtime_id);
         self.bit_array.set(index, id);
     }
@@ -49,8 +49,8 @@ impl PalettedBlockStorage {
         }
     }
 
-    fn resize(&self, version: &'static BitArrayVersion) {
-        let mut new_bit_array = version.create_palette(4096, [0; 4096]);
+    fn resize(&mut self, version: &'static BitArrayVersion) {
+        let mut new_bit_array = version.create_palette([0; 4096]);
         (0..4096).for_each(|x| {
             new_bit_array.set(x, self.bit_array.get(x));
         });
@@ -60,7 +60,7 @@ impl PalettedBlockStorage {
 
 impl MCPEPacketData for PalettedBlockStorage {
     fn decode(
-        reader: &mut impl crate::traits::Reader,
+        _: &mut impl crate::traits::Reader,
     ) -> Result<Self, crate::prelude::MCPEPacketDataError> {
         todo!()
     }
@@ -77,8 +77,8 @@ impl MCPEPacketData for PalettedBlockStorage {
 
         VarInt(self.palette.len() as i32).encode(writer)?;
 
-        for i in self.palette {
-            VarInt(i).encode(writer)?;
+        for i in &self.palette {
+            VarInt(*i).encode(writer)?;
         }
         Ok(())
     }
@@ -112,7 +112,7 @@ bit_array_version!(V2, 2, 16, Some(&V3));
 bit_array_version!(V1, 1, 32, Some(&V2));
 
 impl BitArrayVersion {
-    fn create_palette(&'static self, size: u32, words: [i32; 4096]) -> BitArray {
+    fn create_palette(&'static self, words: [i32; 4096]) -> BitArray {
         match self.bits {
             3..=6 => BitArray::from_padded(self, words),
             _ => BitArray::from_pow2(self, words),
@@ -120,7 +120,7 @@ impl BitArrayVersion {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BitArray {
     pow2: bool,
     version: &'static BitArrayVersion,
@@ -192,10 +192,10 @@ impl BitArray {
         } else {
             // TODO: Add check
             // Preconditions.checkElementIndex(index, this.size);
-            let arrayIndex = (index / self.version.entries_per_word) as usize;
+            let array_index = (index / self.version.entries_per_word) as usize;
             let offset = index % self.version.entries_per_word * self.version.bits;
             // Don't know the >>> operator so just used >>
-            self.words[arrayIndex] >> offset & self.version.max_entry_value
+            self.words[array_index] >> offset & self.version.max_entry_value
         }
     }
 }
@@ -206,15 +206,15 @@ lazy_static! {
 
 pub struct GlobalBlockPalette {
     legacy_to_runtime_id: HashMap<i32, i32>,
-    runtime_id_to_legacy: HashMap<i32, i32>,
+    _runtime_id_to_legacy: HashMap<i32, i32>,
 }
 
 impl GlobalBlockPalette {
     pub fn get_or_create_runtime_id(&self, id: i32, meta: i32) -> i32 {
-        let legacyId = id << 6 | meta;
-        if let Some(e) = self.legacy_to_runtime_id.get(&legacyId) {
+        let legacy_id = id << 6 | meta;
+        if let Some(e) = self.legacy_to_runtime_id.get(&legacy_id) {
             *e
-        } else if let Some(e) = self.legacy_to_runtime_id.get(&(legacyId << 6)) {
+        } else if let Some(e) = self.legacy_to_runtime_id.get(&(legacy_id << 6)) {
             *e
         } else {
             panic!("No runtime ID for unknown block {}", id);
@@ -233,7 +233,7 @@ impl GlobalBlockPalette {
             })
             .collect();
         Self {
-            runtime_id_to_legacy: legacy_to_runtime_id.iter().map(|(x, y)| (*y, *x)).collect(),
+            _runtime_id_to_legacy: legacy_to_runtime_id.iter().map(|(x, y)| (*y, *x)).collect(),
             legacy_to_runtime_id,
         }
     }

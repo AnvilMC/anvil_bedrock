@@ -9,7 +9,6 @@ use crate::prelude::RaknetPacket;
 
 use super::{Ack, Record};
 
-#[derive(Default)]
 pub struct FrameManager {
     current_frame_number: u32,
     split_packet_id: u16,
@@ -18,8 +17,13 @@ pub struct FrameManager {
 }
 
 impl FrameManager {
-    pub fn set_mtu(&mut self, mtu: u16) {
-        self.mtu = mtu;
+    pub fn new(mtu: u16) -> Self {
+        Self {
+            current_frame_number: 0,
+            split_packet_id: 0,
+            mtu,
+            frame_parts: None,
+        }
     }
 
     pub fn get_mtu(&mut self) -> u16 {
@@ -79,13 +83,14 @@ impl FrameManager {
         let mut buffer = Vec::with_capacity(1024 * 1024);
         buffer.push(packet.id());
         packet.encode(&mut buffer);
-        println!("FRAME CONTENT LENGTH {}", buffer.len());
+        // println!("FRAME CONTENT LENGTH {}", buffer.len());
 
         if buffer.len() + 100 >= self.mtu as usize {
             let mut frames = Vec::new();
 
+            // TODO: Check if MTU != 0
             let split = (buffer.len() + 100) / self.mtu as usize + 2;
-            println!("USING SPLITING {} splits", split);
+            // println!("USING SPLITING {} splits", split);
 
             let mut iter = buffer.into_iter();
             let mut index = 0;

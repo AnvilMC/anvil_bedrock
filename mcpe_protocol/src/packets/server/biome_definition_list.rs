@@ -3,7 +3,7 @@ use packet_derive::{packet, MCPEPacketDataAuto};
 use crate::prelude::StaticData;
 
 #[packet(0x7A)]
-#[derive(MCPEPacketDataAuto)]
+#[derive(MCPEPacketDataAuto, Debug)]
 pub struct BiomeDefinitionList {
     inventory: StaticData<'static, u8>,
 }

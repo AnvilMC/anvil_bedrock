@@ -11,7 +11,7 @@ impl MCPEPacketData for String {
         let binary = reader.read(length).map_err(|x| x.map("string_value"))?;
 
         String::from_utf8(binary)
-            .map_err(|x| MCPEPacketDataError::new("string_value", "Invalid UTF8 sequence"))
+            .map_err(|_| MCPEPacketDataError::new("string_value", "Invalid UTF8 sequence"))
     }
 
     fn encode(&self, writer: &mut impl Writer) -> Result<(), MCPEPacketDataError> {

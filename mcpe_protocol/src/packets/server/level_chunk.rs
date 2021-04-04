@@ -1,6 +1,8 @@
+use std::convert::TryInto;
+
 use packet_derive::{packet, MCPEPacketDataAuto};
 
-use crate::prelude::{BiomeIdArray, ByteArray, ByteArrayEncapsulated, Le, PalettedBlockStorage, ReadToEndVec, StaticData, UnsignedVarInt, VarInt, VecIndexed};
+use crate::prelude::{BiomeIdArray, ByteArrayEncapsulated, StaticData, UnsignedVarInt, VarInt};
 
 // #[packet(0x3A)]
 // #[derive(MCPEPacketDataAuto)]
@@ -34,20 +36,32 @@ pub struct LevelChunkPacket {
     data: ByteArrayEncapsulated<LevelChunkDataData>,
 }
 
-#[derive(MCPEPacketDataAuto, Debug)]
+#[derive(MCPEPacketDataAuto, Debug, Clone)]
 pub struct LevelChunkSection {
-    unknown_byte_1: i8,            // value = 8,
-    unknown_byte_2: i8,            // value = 2,
-    storage: PalettedBlockStorage, // writeTo in cn.nukkit.level.format.anvil.util.BlockStorage
+    unknown_byte_1: i8, // value = 8,
+    unknown_byte_2: i8, // value = 2,
+    //storage: PalettedBlockStorage, // writeTo in cn.nukkit.level.format.anvil.util.BlockStorage
+    storage: StaticData<'static, u8>,
     empty_storage: StaticData<'static, u8>,
 }
 
-#[derive(MCPEPacketDataAuto,Debug)]
+impl LevelChunkSection {
+    pub fn new(/* storage: PalettedBlockStorage */) -> Self {
+        Self {
+            unknown_byte_1: 8,
+            unknown_byte_2: 2,
+            storage: StaticData(EMPTY_STORAGE),
+            empty_storage: StaticData(EMPTY_STORAGE),
+        }
+    }
+}
+
+#[derive(MCPEPacketDataAuto, Debug)]
 pub struct LevelChunkDataData {
     sections: [LevelChunkSection; 16],
     biome_id_array: BiomeIdArray,
     unknown_byte_1: i8, // DEFAULT: 0
-    //block_entities for Later
+                        //block_entities for Later
 }
 
 /* BinaryStream stream = ((BinaryStream)ThreadCache.binaryStream.get()).reset();
@@ -69,12 +83,40 @@ getLevel().chunkRequestCallback(timestamp, x, z, count, stream.getBuffer()); */
 
 impl LevelChunkPacket {
     pub fn new(chunk_x: i32, chunk_z: i32) -> Self {
+        println!("A1");
         Self {
             chunk_x: VarInt(chunk_x),
             chunk_z: VarInt(chunk_z),
             sub_chunk_count: UnsignedVarInt(6),
             cache: false,
-            data: , /*StaticData(include_bytes!("0.2new.bin"))*/
+            data: ByteArrayEncapsulated(LevelChunkDataData {
+                sections: (0..16)
+                    .map(|_| {
+                        println!("A2");
+                        LevelChunkSection::new(/* {
+            let mut palette = PalettedBlockStorage::new(&crate::prelude::V1);
+            palette.set_block(
+                3,
+                crate::prelude::GLOBAL_BLOCK_PALETTE.get_or_create_runtime_id(3, 0),
+            );
+            palette.set_block(
+                4,
+                crate::prelude::GLOBAL_BLOCK_PALETTE.get_or_create_runtime_id(2, 0),
+            );
+            palette.set_block(
+                5,
+                crate::prelude::GLOBAL_BLOCK_PALETTE.get_or_create_runtime_id(1, 0),
+            );
+            palette
+        } */)
+                        .clone()
+                    })
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap(),
+                biome_id_array: BiomeIdArray::default(),
+                unknown_byte_1: 0,
+            }), /*StaticData(include_bytes!("0.2new.bin"))*/
         }
     }
 }

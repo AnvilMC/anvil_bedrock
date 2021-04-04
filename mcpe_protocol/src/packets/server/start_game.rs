@@ -4,8 +4,8 @@ use crate::prelude::{
 };
 use packet_derive::{packet, MCPEPacketDataAuto};
 
-#[derive(Debug, MCPEPacketDataAuto)]
-pub struct Vec3f(Le<f32>, Le<f32>, Le<f32>);
+#[derive(Debug, MCPEPacketDataAuto, Clone)]
+pub struct Vec3f(pub Le<f32>, pub Le<f32>, pub Le<f32>);
 
 impl From<(f32, f32, f32)> for Vec3f {
     fn from(e: (f32, f32, f32)) -> Self {
@@ -252,7 +252,7 @@ impl StartGamePacket {
             platform_broadcast_intent: VarInt(0),
             commands_enabled: true,
             is_texture_packs_required: false,
-            game_rules: VecIndexed::from(vec![]),
+            game_rules: VecIndexed::from(vec![GameRule::ShowCoordinates(true)]),
             _unknown1: Le(0),
             _unknown2: false,
             bonus_chest: false,
@@ -266,7 +266,7 @@ impl StartGamePacket {
             is_from_world_template: false,
             is_world_template_option_locked: false,
             is_only_spawning_v1_villagers: false,
-            vanilla_version: "1.16.210".to_owned(),
+            vanilla_version: crate::GAME_VERSION.to_owned(),
             limited_world_width: 10000,
             limited_world_height: 255,
             is_nether_type: false,
@@ -288,6 +288,7 @@ impl StartGamePacket {
     }
 }
 
+#[allow(non_snake_case)]
 #[derive(serde::Deserialize, Debug)]
 pub struct ItemDef {
     pub name: String,
