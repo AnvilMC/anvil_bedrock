@@ -1,7 +1,7 @@
 use mcpe_protocol::{
     prelude::{
-        LoginPacket, MCPEPacketDataError, PlayerMovePacket, RequestChunkRadiusPacket,
-        ResourcePackClientResponsePacket, TickSyncPacket, UnsignedVarInt,
+        LoginPacket, MCPEPacketDataError, PlayerActionPacket, PlayerMovePacket,
+        RequestChunkRadiusPacket, ResourcePackClientResponsePacket, TickSyncPacket, UnsignedVarInt,
     },
     traits::{MCPEPacketData, Reader},
 };
@@ -12,6 +12,7 @@ pub enum ReceivablePacket {
     LoginPacket(LoginPacket),
     ResourcePackClientResponsePacket(ResourcePackClientResponsePacket),
     PlayerMovePacket(PlayerMovePacket),
+    PlayerActionPacket(PlayerActionPacket),
 }
 
 impl ReceivablePacket {
@@ -27,6 +28,10 @@ impl ReceivablePacket {
                 RequestChunkRadiusPacket::decode(&mut iter)?,
             )),
             0x17 => Ok(Self::TickSyncPacket(TickSyncPacket::decode(&mut iter)?)),
+            0x24 => Ok(Self::PlayerActionPacket(PlayerActionPacket::decode(
+                &mut iter,
+            )?)),
+            0x13 => Ok(Self::PlayerMovePacket(PlayerMovePacket::decode(&mut iter)?)),
             0x9C => {
                 panic!("Packet violation : {:?}", iter.read_to_end());
             }

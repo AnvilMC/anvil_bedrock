@@ -187,7 +187,10 @@ impl NetworkPlayer {
                 }
             }
             ReceivablePacket::PlayerMovePacket(e) => {
-                println!("Player move {:?}", e.entity_runtime_id);
+                println!("Player move {:?}", e);
+            }
+            ReceivablePacket::PlayerActionPacket(e) => {
+                println!("Player action {:?}", e);
             }
         }
         Ok(())

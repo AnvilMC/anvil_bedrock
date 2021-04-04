@@ -9,14 +9,14 @@ use crate::{
 #[derive(Debug)]
 pub struct PlayerMovePacket {
     pub entity_runtime_id: UnsignedVarLong,
-    position: Vec3f,
-    pitch: Le<f32>,
-    yaw: Le<f32>,
-    head_yaw: Le<f32>,
-    mode: PlayerMoveMode,
-    on_ground: bool,
-    riding_eid: UnsignedVarLong,
-    teleport_cause: Option<TeleportationCause>,
+    pub position: Vec3f,
+    pub pitch: Le<f32>,
+    pub yaw: Le<f32>,
+    pub head_yaw: Le<f32>,
+    pub mode: PlayerMoveMode,
+    pub on_ground: bool,
+    pub riding_eid: UnsignedVarLong,
+    pub teleport_cause: Option<TeleportationCause>,
 }
 
 impl PlayerMovePacket {
