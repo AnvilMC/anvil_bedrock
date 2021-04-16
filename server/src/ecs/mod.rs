@@ -193,6 +193,9 @@ impl EcsWorld {
         world.register::<PlayerInfo>();
         world.register::<Rotation>();
         world.register::<EntityPlayer>();
+        world.insert("KAYAK".to_owned());
+        world.insert(GameMode::Creative);
+        world.insert(WorldSpawn((0, 1, 0).into()));
         Self {
             world,
             player_packets_rc,
