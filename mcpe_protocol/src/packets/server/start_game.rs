@@ -13,8 +13,8 @@ impl From<(f32, f32, f32)> for Vec3f {
     }
 }
 
-#[derive(Debug, MCPEPacketDataAuto)]
-pub struct BlockVec3(VarInt, UnsignedVarInt, VarInt);
+#[derive(Debug, MCPEPacketDataAuto, Clone)]
+pub struct BlockVec3(pub VarInt, pub UnsignedVarInt, pub VarInt);
 
 impl From<(i32, u32, i32)> for BlockVec3 {
     fn from(e: (i32, u32, i32)) -> Self {
@@ -223,7 +223,7 @@ pub struct StartGamePacket {
 
 #[repr(u8)]
 #[packet_derive::mcpe_packet_data_enum(u8 VarInt)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum GameMode {
     Survival = 0,
     Creative = 1,
@@ -233,7 +233,7 @@ pub enum GameMode {
 
 #[repr(u8)]
 #[packet_derive::mcpe_packet_data_enum(u8 VarInt)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Difficulty {
     Peacefull = 0,
     Easy = 1,

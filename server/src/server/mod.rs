@@ -18,9 +18,6 @@ pub use world::*;
 mod entity;
 pub use entity::*;
 
-mod player;
-pub use player::*;
-
 pub const ANVIL_VERSION: &'static str = "Anvil MCBE Alpha 0.0.0";
 
 pub struct Server<const MAX_PACKET_SIZE: usize> {
@@ -32,8 +29,6 @@ pub struct Server<const MAX_PACKET_SIZE: usize> {
     computed_motd: RaknetString,
     pub worlds: WorldManager,
     pub motd: String,
-    player_handler_r: Receiver<EntityPlayer>,
-    player_handler_s: Arc<Sender<EntityPlayer>>,
 }
 
 impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
@@ -42,7 +37,6 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
         max_players: usize,
         adress: impl Into<SocketAddr>,
     ) -> server::Server<MAX_PACKET_SIZE> {
-        let (s, r) = unbounded();
         Self {
             computed_motd: format!(
                 "MCPE;{};{};{};{};{};{};{};Survival",
@@ -63,8 +57,6 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
             writer_buf: Vec::with_capacity(MAX_PACKET_SIZE),
             read_buf: [0; MAX_PACKET_SIZE],
             worlds: WorldManager::new(),
-            player_handler_r: r,
-            player_handler_s: Arc::new(s),
         }
     }
 
@@ -77,7 +69,7 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
             self.network_players.len(),
             self.network_players.capacity(),
             self.server_uid,
-            self.worlds.worlds[0].name
+            self.worlds.worlds[0].get_name().as_str()
         )
         .as_str()
         .into();
@@ -148,7 +140,6 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                             packet_phoenix.mtu,
                             self.udp_socket.clone(),
                             peer.clone(),
-                            self.player_handler_s.clone(),
                         );
                         self.network_players.insert(peer.clone(), player);
 
@@ -178,9 +169,6 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                     println!("Où allons nous? A la plage! {}", e);
                 }
             }
-        }
-        while let Ok(e) = self.player_handler_r.try_recv() {
-            self.worlds.worlds[0].player_entities.push(e);
         }
     }
 }

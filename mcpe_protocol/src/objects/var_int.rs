@@ -1,6 +1,6 @@
 use crate::prelude::{BitInformation, Indexable, MCPEPacketData, MCPEPacketDataError, ZigZag};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnsignedVarInt(pub u32);
 
 impl MCPEPacketData for UnsignedVarInt {
@@ -86,7 +86,7 @@ impl MCPEPacketData for VarLong {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VarInt(pub i32);
 
 impl MCPEPacketData for VarInt {
