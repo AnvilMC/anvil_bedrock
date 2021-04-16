@@ -158,8 +158,16 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                 0x80..0x8E => {
                     if let Some(player) = self.network_players.get_mut(&peer) {
                         let frame = FramePacket::decode(&mut iter).unwrap();
-                        if let Err(e) = player.handle_frame_receive(&self.worlds, frame).await {
-                            println!("Error while receiving frame {}", e);
+                        match player.handle_frame_receive(&self.worlds, frame).await {
+                            Ok(Some(e)) => {
+                                self.worlds
+                                    .send(&peer, (peer, (e, player.packet_sending_queue_s.clone())))
+                                    .unwrap();
+                            }
+                            Ok(None) => (),
+                            Err(e) => {
+                                println!("Error while receiving frame {}", e);
+                            }
                         }
                     } else {
                         println!("Peer not correctly connected");
@@ -169,6 +177,9 @@ impl<const MAX_PACKET_SIZE: usize> Server<MAX_PACKET_SIZE> {
                     println!("Où allons nous? A la plage! {}", e);
                 }
             }
+        }
+        for world in self.worlds.worlds.iter_mut() {
+            world.handle_packets();
         }
     }
 }

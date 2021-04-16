@@ -12,5 +12,5 @@ pub mod prelude {
     pub use crate::traits::*;
 }
 
-pub const PROTOCOL_VERSION: i32 = 428;
-pub const GAME_VERSION: &'static str = "1.16.210";
+pub const PROTOCOL_VERSION: i32 = 431;
+pub const GAME_VERSION: &'static str = "1.16.220";

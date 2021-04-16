@@ -165,36 +165,31 @@ pub fn create_start_game_packet(ecs: &EcsWorld, entity: Entity) -> StartGamePack
     }
 }
 
+pub type PacketRec = (
+    SocketAddr,
+    (ReceivablePacket, Arc<Sender<GamePacketSendablePacket>>),
+);
+
 pub struct EcsWorld {
     pub world: World,
-    pub player_packets_rc: Receiver<(
-        SocketAddr,
-        (
-            ReceivablePacket,
-            Option<Arc<Sender<GamePacketSendablePacket>>>,
-        ),
-    )>,
+    pub player_packets_rc: Receiver<PacketRec>,
     pub entity_map: HashMap<SocketAddr, Entity>,
     pub entities: HashMap<u32, Entity>,
 }
 
 impl EcsWorld {
-    pub fn new(
-        player_packets_rc: Receiver<(
-            SocketAddr,
-            (
-                ReceivablePacket,
-                Option<Arc<Sender<GamePacketSendablePacket>>>,
-            ),
-        )>,
-    ) -> Self {
+    pub fn new(player_packets_rc: Receiver<PacketRec>) -> Self {
         let mut world = World::new();
         world.register::<Position>();
         world.register::<PlayerInfo>();
         world.register::<Rotation>();
         world.register::<EntityPlayer>();
+        world.register::<NetworkSender>();
+        world.register::<IpAdress>();
+        world.register::<PlayerState>();
         world.insert("KAYAK".to_owned());
         world.insert(GameMode::Creative);
+        world.insert(Difficulty::Peacefull);
         world.insert(WorldSpawn((0, 1, 0).into()));
         Self {
             world,
@@ -223,18 +218,18 @@ impl EcsWorld {
             match receivable {
                 ReceivablePacket::RequestChunkRadiusPacket(e) => {
                     let radius = 3.max(e.radius.0.min(10));
-                    self.send_packet(
-                        &adress,
-                        GamePacketSendablePacket::ChunkRadiusUpdated(ChunkRadiusUpdated {
+                    network_sender.send(GamePacketSendablePacket::ChunkRadiusUpdated(
+                        ChunkRadiusUpdated {
                             radius: VarInt(radius),
-                        }),
-                    );
+                        },
+                    ));
                 }
                 ReceivablePacket::TickSyncPacket(e) => {
-                    self.send_packet(&adress, GamePacketSendablePacket::TickSyncPacket(e));
+                    network_sender.send(GamePacketSendablePacket::TickSyncPacket(e));
                 }
                 ReceivablePacket::LoginPacket(e) => {
                     if e.protocol_version == PROTOCOL_VERSION {
+                        println!("Test1");
                         let e = self
                             .world
                             .create_entity()
@@ -243,56 +238,42 @@ impl EcsWorld {
                                 username: e.display_name,
                                 uuid: e.identity,
                             })
-                            .with(NetworkSender(network_sender.unwrap()))
+                            .with(NetworkSender(network_sender.clone()))
                             .with(IpAdress(adress.clone()))
                             .with(Rotation(0.0, 0.0))
+                            .with(PlayerState {
+                                gamemode: GameMode::Creative,
+                            })
                             .with(EntityPlayer)
                             .build();
                         self.entities.insert(e.id(), e.clone());
                         self.entity_map.insert(adress, e);
 
-                        self.send_packet(
-                            &adress,
-                            GamePacketSendablePacket::PlayStatus(LOGIN_SUCCESS),
-                        );
-                        self.send_packet(
-                            &adress,
-                            GamePacketSendablePacket::ResourcePacksInfo(
-                                ResourcePacksInfo::default(),
-                            ),
-                        );
+                        network_sender.send(GamePacketSendablePacket::PlayStatus(LOGIN_SUCCESS));
+                        network_sender.send(GamePacketSendablePacket::ResourcePacksInfo(
+                            ResourcePacksInfo::default(),
+                        ));
                     } else {
-                        self.send_packet(
-                            &adress,
-                            GamePacketSendablePacket::PlayStatus(LOGIN_FAILED_CLIENT),
-                        );
+                        network_sender
+                            .send(GamePacketSendablePacket::PlayStatus(LOGIN_FAILED_CLIENT));
                     }
                 }
                 ReceivablePacket::ResourcePackClientResponsePacket(e) => {
                     if e.status == 4 {
+                        println!("Test2");
                         if let Some(entity) = self.entity_map.get(&adress) {
-                            self.send_packet(
-                                &adress,
-                                GamePacketSendablePacket::StartGamePacket(
-                                    create_start_game_packet(self, *entity),
-                                ),
-                            );
+                            network_sender.send(GamePacketSendablePacket::StartGamePacket(
+                                create_start_game_packet(self, *entity),
+                            ));
                         }
-                        self.send_packet(
-                            &adress,
-                            GamePacketSendablePacket::BiomeDefinitionList(BIOME_DEFINITION_LIST),
-                        );
-                        self.send_packet(
-                            &adress,
-                            GamePacketSendablePacket::PlayStatus(PLAYER_SPAWN),
-                        );
+                        network_sender.send(GamePacketSendablePacket::BiomeDefinitionList(
+                            BIOME_DEFINITION_LIST,
+                        ));
+                        network_sender.send(GamePacketSendablePacket::PlayStatus(PLAYER_SPAWN));
                     } else {
-                        self.send_packet(
-                            &adress,
-                            GamePacketSendablePacket::ResourcePackStack(
-                                ResourcePackStack::default(),
-                            ),
-                        );
+                        network_sender.send(GamePacketSendablePacket::ResourcePackStack(
+                            ResourcePackStack::default(),
+                        ));
                     }
                 }
                 ReceivablePacket::PlayerMovePacket(e) => {

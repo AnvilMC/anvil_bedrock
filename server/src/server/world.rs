@@ -1,6 +1,6 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use crate::{EcsWorld, GamePacketSendablePacket, PlayerInfo, ReceivablePacket};
+use crate::{EcsWorld, GamePacketSendablePacket, PacketRec, PlayerInfo, ReceivablePacket};
 
 use std::collections::HashMap;
 
@@ -42,38 +42,9 @@ impl<T: Send + Sync> EventHandler<T> {
 
 pub struct WorldManager {
     pub worlds: Vec<EcsWorld>,
-    pub packet_handlers: Vec<
-        Arc<
-            Sender<(
-                SocketAddr,
-                (
-                    ReceivablePacket,
-                    Option<Arc<Sender<GamePacketSendablePacket>>>,
-                ),
-            )>,
-        >,
-    >,
-    pub players_loc: HashMap<
-        SocketAddr,
-        Arc<
-            Sender<(
-                SocketAddr,
-                (
-                    ReceivablePacket,
-                    Option<Arc<Sender<GamePacketSendablePacket>>>,
-                ),
-            )>,
-        >,
-    >,
-    pub default_handler: Arc<
-        Sender<(
-            SocketAddr,
-            (
-                ReceivablePacket,
-                Option<Arc<Sender<GamePacketSendablePacket>>>,
-            ),
-        )>,
-    >,
+    pub packet_handlers: Vec<Arc<Sender<PacketRec>>>,
+    pub players_loc: HashMap<SocketAddr, Arc<Sender<PacketRec>>>,
+    pub default_handler: Arc<Sender<PacketRec>>,
 }
 
 impl WorldManager {
@@ -91,23 +62,8 @@ impl WorldManager {
     pub fn send(
         &mut self,
         adrr: &SocketAddr,
-        packet: (
-            SocketAddr,
-            (
-                ReceivablePacket,
-                Option<Arc<Sender<GamePacketSendablePacket>>>,
-            ),
-        ),
-    ) -> Result<
-        (),
-        SendError<(
-            SocketAddr,
-            (
-                ReceivablePacket,
-                Option<Arc<Sender<GamePacketSendablePacket>>>,
-            ),
-        )>,
-    > {
+        packet: PacketRec,
+    ) -> Result<(), SendError<PacketRec>> {
         if let Some(e) = self.players_loc.get(adrr) {
             e.send(packet)
         } else {
